@@ -1,6 +1,6 @@
 # KinetixFitt — Project Reality
 
-Última actualización: 2026-09-16.
+Última actualización: 2026-09-17.
 
 Este archivo es un mapa operativo, no una promesa de producción. El código, las migraciones y los checks vivos son la fuente de verdad.
 
@@ -8,7 +8,7 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 
 - `main` es la rama operativa para los cambios de lanzamiento solicitados.
 - Prisma usa PostgreSQL (`DATABASE_URL` + `DIRECT_URL`).
-- Monorepo con `apps/mobile`, `apps/web` y paquetes compartidos.
+- Monorepo con `apps/mobile`, `apps/web`, `apps/desktop` y paquetes compartidos.
 - `apps/web` y `apps/mobile` se despliegan como proyectos separados.
 - No afirmar `PRODUCTION READY`, `VERIFIED`, `AI-powered` o `COMPLETE` sin evidencia actual.
 
@@ -118,8 +118,10 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 ## Native / PWA / 3D
 
 - PWA existe.
-- Capacitor/Electron existen como wrappers.
-- `CAPACITOR_SERVER_URL` controla la URL pública de los builds nativos.
+- Android/iOS usan Capacitor como wrappers online contra `CAPACITOR_SERVER_URL`.
+- Capacitor ahora usa `apps/mobile/native-shell` como `webDir`, por lo que no empaqueta automáticamente el árbol completo de `public/` (incluyendo ejercicios, audio o vídeos) dentro del paquete nativo.
+- Windows/macOS tienen un shell Tauri 2 separado en `apps/desktop` que carga `https://app.kinetixfitt.com` en producción y no incrusta los assets de la web; Electron se conserva como fallback de transición.
+- Tauri permite usar una URL remota como `frontendDist` sin assets embebidos. citeturn221957search1turn979271search7
 - Android de producción tiene workflow de AAB firmado basado en GitHub Secrets.
 - Packaging Android/iOS/macOS/Windows end-to-end sigue UNVERIFIED hasta generar y probar artefactos reales.
 - 3D usa Three.js/WebGL; no afirmar WebGPU/Web Workers/OffscreenCanvas sin implementación y medición.
@@ -127,6 +129,7 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 ## Quality gates
 
 - CI ejecuta install, typecheck, lint, migrations, seed, unit tests, build mobile, security HTTP E2E y build web.
+- El workflow nativo genera Windows/macOS con Tauri y Android/iOS con Capacitor.
 - `npm run test:unit` es la suite offline/unittest.
 - `npm run test:security` requiere un servidor Next real.
 - La suite de seguridad usa fixtures aisladas y no cuentas demo.
@@ -140,4 +143,4 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 3. Falta completar la pirámide E2E de journeys completos.
 4. Falta terminar sincronización offline real y resolución de conflictos.
 5. Community, automatizaciones avanzadas y varias capacidades de IA siguen parciales.
-6. Native packaging y releases de stores siguen sin verificación end-to-end.
+6. Native packaging y releases de stores siguen sin verificación end-to-end; esta optimización debe medirse con los artefactos generados en CI.
