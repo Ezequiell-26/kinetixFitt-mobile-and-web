@@ -1,197 +1,64 @@
 /**
- * KinetixFit PWA Configuration - Progressive Web App Profesional
- * Basado en workbox, next-pwa, y mejores prácticas MIT de PWAs
- * 
- * Características:
- * - Service Worker con estrategias de caché avanzadas
- * - Offline-first con sincronización inteligente
- * - Instalación 1-click
- * - Notificaciones push
- * - Background sync
- * - App shell architecture
+ * KinetixFitt PWA configuration.
+ * Client-side helpers for installability, push and durable offline mutation retries.
  */
 
-// === MANIFEST CONFIGURATION ===
-
 export const manifest = {
-  name: 'KinetixFit - Tu Entrenador Inteligente',
-  short_name: 'KinetixFit',
-  description: 'La plataforma todo-en-uno que combina ciencia del deporte, IA personalizada y comunidad',
-  start_url: '/',
-  display: 'standalone',
-  background_color: '#0f172a',
-  theme_color: '#10b981',
-  orientation: 'portrait-primary',
+  name: "KinetixFitt - Tu Entrenador Inteligente",
+  short_name: "KinetixFitt",
+  description: "Plataforma de fitness para entrenamiento, progreso y coaching.",
+  start_url: "/",
+  display: "standalone",
+  background_color: "#0f172a",
+  theme_color: "#10b981",
+  orientation: "portrait-primary",
   icons: [
-    {
-      src: '/icons/icon-72x72.png',
-      sizes: '72x72',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-96x96.png',
-      sizes: '96x96',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-128x128.png',
-      sizes: '128x128',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-144x144.png',
-      sizes: '144x144',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-152x152.png',
-      sizes: '152x152',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-192x192.png',
-      sizes: '192x192',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-384x384.png',
-      sizes: '384x384',
-      type: 'image/png',
-      purpose: 'maskable any'
-    },
-    {
-      src: '/icons/icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'maskable any'
-    }
+    { src: "/icons/icon-72x72.png", sizes: "72x72", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-96x96.png", sizes: "96x96", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-128x128.png", sizes: "128x128", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-144x144.png", sizes: "144x144", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png", purpose: "maskable any" },
+    { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable any" },
   ],
-  categories: ['health', 'fitness', 'lifestyle'],
-  lang: 'es',
-  dir: 'ltr',
-  scope: '/',
+  categories: ["health", "fitness", "lifestyle"],
+  lang: "es",
+  dir: "ltr",
+  scope: "/",
   prefer_related_applications: false,
-  shortcuts: [
-    {
-      name: 'Iniciar Entrenamiento',
-      short_name: 'Entrenar',
-      description: 'Comienza tu sesión de entrenamiento',
-      url: '/workout/start',
-      icons: [{ src: '/icons/shortcut-workout.png', sizes: '96x96' }]
-    },
-    {
-      name: 'Ver Progreso',
-      short_name: 'Progreso',
-      description: 'Revisa tu progreso y estadísticas',
-      url: '/dashboard',
-      icons: [{ src: '/icons/shortcut-progress.png', sizes: '96x96' }]
-    },
-    {
-      name: 'Nutrición',
-      short_name: 'Comida',
-      description: 'Registra tus comidas',
-      url: '/nutrition',
-      icons: [{ src: '/icons/shortcut-nutrition.png', sizes: '96x96' }]
-    }
-  ],
-  screenshots: [
-    {
-      src: '/screenshots/dashboard.png',
-      sizes: '1280x720',
-      type: 'image/png',
-      form_factor: 'wide',
-      label: 'Dashboard Principal'
-    },
-    {
-      src: '/screenshots/workout.png',
-      sizes: '750x1334',
-      type: 'image/png',
-      form_factor: 'narrow',
-      label: 'Entrenamiento en Curso'
-    }
-  ],
-  share_target: {
-    action: '/share',
-    method: 'POST',
-    enctype: 'multipart/form-data',
-    params: {
-      title: 'title',
-      text: 'text',
-      url: 'url',
-      files: [
-        {
-          name: 'photos',
-          accept: ['image/*', 'video/*']
-        }
-      ]
-    }
-  }
 };
-
-// === SERVICE WORKER CACHE STRATEGIES ===
 
 export interface CacheStrategy {
   pattern: RegExp;
-  strategy: 'cache-first' | 'network-first' | 'stale-while-revalidate' | 'network-only' | 'cache-only';
+  strategy: "cache-first" | "network-first" | "stale-while-revalidate" | "network-only" | "cache-only";
   cacheName: string;
   maxEntries?: number;
   maxAgeSeconds?: number;
 }
 
 export const cacheStrategies: CacheStrategy[] = [
-  // App Shell - Cache First
   {
     pattern: /^\/$/,
-    strategy: 'cache-first',
-    cacheName: 'app-shell',
+    strategy: "cache-first",
+    cacheName: "app-shell",
     maxEntries: 10,
-    maxAgeSeconds: 86400 * 7 // 7 días
+    maxAgeSeconds: 86400 * 7,
   },
-  
-  // Static Assets - Cache First
   {
     pattern: /\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp)$/,
-    strategy: 'cache-first',
-    cacheName: 'static-assets',
+    strategy: "cache-first",
+    cacheName: "static-assets",
     maxEntries: 200,
-    maxAgeSeconds: 86400 * 30 // 30 días
+    maxAgeSeconds: 86400 * 30,
   },
-  
-  // API Requests - Network First with fallback
   {
+    // Never persist authenticated API responses in the browser cache.
     pattern: /\/api\//,
-    strategy: 'network-first',
-    cacheName: 'api-cache',
-    maxEntries: 100,
-    maxAgeSeconds: 300 // 5 minutos
+    strategy: "network-only",
+    cacheName: "api-network-only",
   },
-  
-  // Images from external sources - Stale While Revalidate
-  {
-    pattern: /^https:\/\/.*\.(png|jpg|jpeg|gif|webp|svg)$/,
-    strategy: 'stale-while-revalidate',
-    cacheName: 'external-images',
-    maxEntries: 100,
-    maxAgeSeconds: 86400 * 7
-  },
-  
-  // Google Fonts - Cache First
-  {
-    pattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
-    strategy: 'cache-first',
-    cacheName: 'google-fonts',
-    maxEntries: 30,
-    maxAgeSeconds: 86400 * 365 // 1 año
-  }
 ];
-
-// === OFFLINE PAGE ===
 
 export const offlinePage = `
 <!DOCTYPE html>
@@ -199,181 +66,158 @@ export const offlinePage = `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sin Conexión - KinetixFit</title>
+  <title>Sin conexión · KinetixFitt</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .container {
-      text-align: center;
-      max-width: 500px;
-    }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #10b981, #14b8a6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    p {
-      font-size: 1.1rem;
-      color: #94a3b8;
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-    .icon {
-      font-size: 4rem;
-      margin-bottom: 1.5rem;
-      opacity: 0.8;
-    }
-    button {
-      background: linear-gradient(135deg, #10b981, #14b8a6);
-      color: white;
-      border: none;
-      padding: 1rem 2rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
-    }
-    .cached-pages {
-      margin-top: 2rem;
-      padding: 1.5rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-    }
-    .cached-pages h3 {
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      color: #10b981;
-    }
-    .cached-pages ul {
-      list-style: none;
-      text-align: left;
-    }
-    .cached-pages li {
-      padding: 0.5rem 0;
-      color: #94a3b8;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .cached-pages li:last-child {
-      border-bottom: none;
-    }
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:24px}
+    main{width:min(560px,100%);text-align:center;padding:32px;border:1px solid rgba(255,255,255,.1);border-radius:24px;background:rgba(255,255,255,.04)}
+    h1{margin:0 0 12px;font-size:32px}p{color:#94a3b8;line-height:1.6}button{margin-top:14px;border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">📡</div>
-    <h1>Sin Conexión</h1>
-    <p>Parece que estás offline. No te preocupes, algunas funciones siguen disponibles sin conexión.</p>
-    <button onclick="window.location.reload()">Reintentar Conexión</button>
-    
-    <div class="cached-pages">
-      <h3>Disponible Offline:</h3>
-      <ul>
-        <li>✓ Dashboard principal</li>
-        <li>✓ Historial de entrenamientos</li>
-        <li>✓ Rutinas guardadas</li>
-        <li>✓ Estadísticas personales</li>
-        <li>✓ Configuración de perfil</li>
-      </ul>
-    </div>
-  </div>
+  <main>
+    <div aria-hidden="true" style="font-size:48px">◌</div>
+    <h1>Sin conexión</h1>
+    <p>No hay conexión disponible. Las operaciones pendientes se conservarán y volverán a intentarse cuando recuperes internet.</p>
+    <button onclick="window.location.reload()">Reintentar</button>
+  </main>
 </body>
-</html>
-`;
+</html>`;
 
-// === BACKGROUND SYNC TASKS ===
+export type SyncTaskType = "workout-log" | "nutrition-entry" | "progress-update" | "message-send";
 
 export interface SyncTask {
   id: string;
-  type: 'workout-log' | 'nutrition-entry' | 'progress-update' | 'message-send';
-  data: any;
+  type: SyncTaskType;
+  data: Record<string, unknown>;
   timestamp: number;
   retryCount: number;
+  nextAttemptAt?: number;
+}
+
+function isBrowser() {
+  return typeof window !== "undefined" && typeof localStorage !== "undefined";
+}
+
+function taskEndpoint(task: SyncTask) {
+  const endpoint = typeof task.data.endpoint === "string" ? task.data.endpoint : null;
+  if (!endpoint || !endpoint.startsWith("/api/")) {
+    throw new Error(`Missing safe API endpoint for sync task ${task.id}`);
+  }
+  return endpoint;
+}
+
+function taskBody(task: SyncTask) {
+  const { endpoint: _endpoint, ...body } = task.data;
+  return body;
 }
 
 export class BackgroundSyncManager {
-  private readonly STORAGE_KEY = 'kinetix_sync_queue';
-  private readonly MAX_RETRIES = 3;
-  private readonly RETRY_DELAY = 5000; // 5 segundos
+  private readonly STORAGE_KEY = "kinetix_sync_queue";
+  private readonly MAX_RETRIES = 5;
+  private processing = false;
 
-  public async queueTask(task: Omit<SyncTask, 'timestamp' | 'retryCount'>): Promise<void> {
-    const fullTask: SyncTask = {
+  public constructor() {
+    if (isBrowser()) {
+      window.addEventListener("online", () => {
+        void this.processQueue();
+      });
+    }
+  }
+
+  public async queueTask(task: Omit<SyncTask, "timestamp" | "retryCount">): Promise<void> {
+    if (!isBrowser()) return;
+    const queue = this.getQueue();
+    const existing = queue.some((item) => item.id === task.id);
+    if (existing) return;
+
+    queue.push({
       ...task,
       timestamp: Date.now(),
-      retryCount: 0
-    };
-
-    const queue = this.getQueue();
-    queue.push(fullTask);
+      retryCount: 0,
+    });
     this.saveQueue(queue);
 
-    // Intentar sincronizar inmediatamente si hay conexión
     if (navigator.onLine) {
-      this.processQueue();
+      void this.processQueue();
     }
   }
 
   public async processQueue(): Promise<void> {
-    const queue = this.getQueue();
-    const failedTasks: SyncTask[] = [];
+    if (!isBrowser() || this.processing || !navigator.onLine) return;
+    this.processing = true;
 
-    for (const task of queue) {
-      try {
-        await this.executeTask(task);
-      } catch (error) {
-        console.error(`Sync task ${task.id} failed:`, error);
-        task.retryCount++;
-        
-        if (task.retryCount < this.MAX_RETRIES) {
-          failedTasks.push(task);
+    try {
+      const queue = this.getQueue();
+      const remaining: SyncTask[] = [];
+      const now = Date.now();
+
+      for (const task of queue) {
+        if (task.nextAttemptAt && task.nextAttemptAt > now) {
+          remaining.push(task);
+          continue;
+        }
+
+        try {
+          await this.executeTask(task);
+        } catch (error) {
+          const retryCount = task.retryCount + 1;
+          const transient = error instanceof Error && /network|timeout|5\d\d/i.test(error.message);
+          if (retryCount < this.MAX_RETRIES && transient) {
+            remaining.push({
+              ...task,
+              retryCount,
+              nextAttemptAt: Date.now() + Math.min(60_000, 2_000 * 2 ** (retryCount - 1)),
+            });
+          } else if (retryCount < this.MAX_RETRIES) {
+            remaining.push({ ...task, retryCount });
+          } else {
+            console.error("[PWA SYNC] task dropped after maximum retries", { id: task.id, type: task.type });
+          }
         }
       }
-    }
 
-    this.saveQueue(failedTasks);
+      this.saveQueue(remaining);
+    } finally {
+      this.processing = false;
+    }
   }
 
   private async executeTask(task: SyncTask): Promise<void> {
-    // Simulación de envío al servidor
-    // En producción, esto haría un fetch real al backend
-    
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (Math.random() > 0.2) { // 80% éxito simulado
-          resolve();
-        } else {
-          reject(new Error('Network error'));
-        }
-      }, 1000);
+    const endpoint = taskEndpoint(task);
+    const response = await fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(taskBody(task)),
     });
+
+    if (!response.ok) {
+      const reason = response.status >= 500 ? `Server error ${response.status}` : `Request rejected ${response.status}`;
+      throw new Error(reason);
+    }
   }
 
   private getQueue(): SyncTask[] {
+    if (!isBrowser()) return [];
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      if (!stored) return [];
+      const parsed: unknown = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((value): value is SyncTask => {
+        if (!value || typeof value !== "object") return false;
+        const item = value as Partial<SyncTask>;
+        return typeof item.id === "string" && typeof item.type === "string" && typeof item.data === "object" && item.data !== null;
+      });
     } catch {
       return [];
     }
   }
 
   private saveQueue(queue: SyncTask[]): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
+    if (!isBrowser()) return;
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue.slice(-100)));
   }
 
   public getQueueLength(): number {
@@ -381,112 +225,110 @@ export class BackgroundSyncManager {
   }
 
   public clearQueue(): void {
+    if (!isBrowser()) return;
     localStorage.removeItem(this.STORAGE_KEY);
   }
 }
 
-// === PUSH NOTIFICATIONS ===
-
 export class PushNotificationManager {
-  private readonly VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE';
-
   public async requestPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
-      return 'denied';
-    }
-
+    if (!("Notification" in window)) return "denied";
     return Notification.requestPermission();
   }
 
   public async subscribe(): Promise<PushSubscription | null> {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      return null;
-    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
 
-    const registration = await navigator.serviceWorker.ready;
-    
     try {
-      const subscription = await registration.pushManager.subscribe({
+      const keyResponse = await fetch("/api/push/public-key", {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!keyResponse.ok) throw new Error("Push no configurado en el servidor");
+      const payload = (await keyResponse.json()) as { publicKey?: string };
+      if (!payload.publicKey) throw new Error("Falta la clave pública VAPID");
+
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const subscription = existing ?? await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.VAPID_PUBLIC_KEY)
+        applicationServerKey: this.urlBase64ToUint8Array(payload.publicKey),
       });
 
-      // Enviar suscripción al servidor
-      await this.sendSubscriptionToServer(subscription);
-      
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      });
+      if (!response.ok) throw new Error("No se pudo guardar la suscripción push");
+
       return subscription;
     } catch (error) {
-      console.error('Failed to subscribe to push:', error);
+      console.error("[PUSH] subscription failed", error);
       return null;
     }
   }
 
   public async unsubscribe(): Promise<boolean> {
-    if (!('serviceWorker' in navigator)) {
+    if (!("serviceWorker" in navigator)) return false;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return false;
+      const endpoint = encodeURIComponent(subscription.endpoint);
+      await subscription.unsubscribe();
+      await fetch(`/api/push/subscribe?endpoint=${endpoint}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      return true;
+    } catch (error) {
+      console.error("[PUSH] unsubscribe failed", error);
       return false;
     }
-
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    
-    if (subscription) {
-      await subscription.unsubscribe();
-      return true;
-    }
-
-    return false;
-  }
-
-  private async sendSubscriptionToServer(subscription: PushSubscription): Promise<void> {
-    // Enviar al backend para guardar la suscripción
-    console.log('Push subscription:', subscription);
-  }
-
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-
-    return outputArray;
   }
 
   public showNotification(title: string, options?: NotificationOptions): void {
-    if (Notification.permission === 'granted') {
-      new Notification(title, {
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/badge-72x72.png',
-        vibrate: [200, 100, 200],
-        ...options
-      });
-    }
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    void navigator.serviceWorker?.ready
+      .then((registration) => registration.showNotification(title, {
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-192x192.png",
+        ...options,
+      }))
+      .catch(() => undefined);
+  }
+
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from(rawData, (char) => char.charCodeAt(0));
   }
 }
 
-// === INSTALL PROMPT MANAGER ===
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 export class InstallPromptManager {
-  private deferredPrompt: any = null;
+  private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private onStateChange?: (installed: boolean) => void;
 
   public init(onStateChange?: (installed: boolean) => void): void {
     this.onStateChange = onStateChange;
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      this.deferredPrompt = event as BeforeInstallPromptEvent;
       this.onStateChange?.(false);
     });
 
-    window.addEventListener('appinstalled', () => {
+    window.addEventListener("appinstalled", () => {
       this.deferredPrompt = null;
       this.onStateChange?.(true);
     });
@@ -497,59 +339,42 @@ export class InstallPromptManager {
   }
 
   public async prompt(): Promise<boolean> {
-    if (!this.deferredPrompt) {
-      return false;
-    }
-
-    this.deferredPrompt.prompt();
-    
-    const { outcome } = await this.deferredPrompt.userChoice;
+    if (!this.deferredPrompt) return false;
+    const prompt = this.deferredPrompt;
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
     this.deferredPrompt = null;
-
-    return outcome === 'accepted';
+    return outcome === "accepted";
   }
 
   public isInstalled(): boolean {
-    return window.matchMedia('(display-mode: standalone)').matches ||
-           (navigator as any).standalone === true;
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
   }
 }
-
-// === SINGLETON INSTANCES ===
 
 export const syncManager = new BackgroundSyncManager();
 export const pushManager = new PushNotificationManager();
 export const installManager = new InstallPromptManager();
 
-// === SERVICE WORKER REGISTRATION HELPER ===
-
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) {
-    console.warn('Service Workers not supported');
-    return null;
-  }
+  if (!("serviceWorker" in navigator)) return null;
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/'
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    registration.update().catch(() => undefined);
+    registration.addEventListener("updatefound", () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && navigator.serviceWorker.controller) {
+          window.dispatchEvent(new CustomEvent("kinetix:sw-update-available"));
+        }
+      });
     });
-
-    // Actualizar SW si hay cambios
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      if (newWorker) {
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // Nuevo contenido disponible
-            console.log('New content available, please refresh.');
-          }
-        });
-      }
-    });
-
     return registration;
   } catch (error) {
-    console.error('SW registration failed:', error);
+    console.error("[PWA] service worker registration failed", error);
     return null;
   }
 }
