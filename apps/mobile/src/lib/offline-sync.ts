@@ -30,6 +30,8 @@ const MAX_QUEUE_SIZE = 200;
 const MAX_ITEM_BYTES = 256 * 1024;
 const SYNC_INTERVAL = 30000;
 
+let queueCache: PendingOperation[] = [];
+
 export function isOnline(): boolean {
   return typeof window === "undefined" ? true : navigator.onLine;
 }
@@ -56,8 +58,8 @@ function isPendingOperation(value: unknown): value is PendingOperation {
   return (
     typeof op.id === "string" &&
     typeof op.endpoint === "string" &&
-    typeof op.type === "string" &&
-    typeof op.method === "string" &&
+    ["workout-log", "measurement", "checkin", "message"].includes(String(op.type)) &&
+    ["POST", "PUT", "PATCH", "DELETE"].includes(String(op.method)) &&
     typeof op.timestamp === "number" &&
     typeof op.retryCount === "number"
   );
@@ -116,6 +118,7 @@ async function readIndexedQueue(): Promise<PendingOperation[]> {
         resolve(operations);
       };
     });
+    queueCache = values;
     return values;
   } finally {
     db.close();
@@ -151,16 +154,18 @@ async function deleteIndexedOperation(id: string): Promise<void> {
 }
 
 async function replaceIndexedQueue(queue: PendingOperation[]): Promise<void> {
+  const bounded = queue.slice(-MAX_QUEUE_SIZE);
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       store.clear();
-      for (const operation of queue.slice(-MAX_QUEUE_SIZE)) store.put(operation);
+      for (const operation of bounded) store.put(operation);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error("No se pudo actualizar la cola offline"));
     });
+    queueCache = bounded;
   } finally {
     db.close();
   }
@@ -185,8 +190,8 @@ async function readQueue(): Promise<PendingOperation[]> {
     await migrateLegacyQueue();
     return await readIndexedQueue();
   } catch {
-    // Fallback only for browsers without IndexedDB.
-    return readLegacyQueue();
+    queueCache = readLegacyQueue();
+    return queueCache;
   }
 }
 
@@ -195,6 +200,7 @@ async function writeQueue(queue: PendingOperation[]): Promise<void> {
   try {
     await replaceIndexedQueue(bounded);
   } catch {
+    queueCache = bounded;
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(bounded));
@@ -232,23 +238,20 @@ export async function queueOperation(
   const existing = await readQueue();
   if (existing.length >= MAX_QUEUE_SIZE) existing.shift();
   await writeQueue([...existing, pendingOp]);
-
   return id;
 }
 
 export function getQueuedOperations(): PendingOperation[] {
-  // Synchronous compatibility API. New code should prefer getPendingCount()
-  // or syncPendingOperations(), both of which read IndexedDB asynchronously.
-  return readLegacyQueue();
+  return queueCache;
 }
 
 export async function removeOperation(id: string): Promise<void> {
+  queueCache = queueCache.filter((operation) => operation.id !== id);
   try {
     await deleteIndexedOperation(id);
   } catch {
-    const queue = readLegacyQueue().filter((operation) => operation.id !== id);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(queueCache));
     } catch {
       // Ignore storage failures.
     }
@@ -291,11 +294,11 @@ export async function syncPendingOperations(): Promise<{ success: number; failed
 
       throw new Error(`HTTP ${response.status}`);
     } catch (error) {
-      const nextRetry = operation.retryCount + 1;
-      operation.retryCount = nextRetry;
-      await writeQueue(operations);
+      operation.retryCount += 1;
+      queueCache = operations.map((item) => item.id === operation.id ? operation : item);
+      await writeQueue(queueCache);
       failed++;
-      console.warn("[Offline Sync] retry", operation.type, nextRetry, error);
+      console.warn("[Offline Sync] retry", operation.type, operation.retryCount, error);
     }
   }
 
@@ -338,11 +341,16 @@ export function queueMessage(messageData: unknown) {
 }
 
 export function getPendingCount(): number {
-  return readLegacyQueue().length;
+  return queueCache.length;
 }
 
 export function clearAllOperations(): void {
   if (typeof window === "undefined") return;
+  queueCache = [];
   clearLegacyQueue();
   void replaceIndexedQueue([]).catch(() => undefined);
+}
+
+if (typeof window !== "undefined") {
+  void readQueue().catch(() => undefined);
 }
