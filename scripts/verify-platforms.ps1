@@ -4,6 +4,7 @@ param([ValidateSet("all","windows","macos","android","ios")][string]$Platform = 
 $ErrorActionPreference = "Stop"
 $root = (Get-Location).Path
 $mobile = Join-Path $root "apps/mobile"
+$desktop = Join-Path $root "apps/desktop"
 $script:errors = @()
 $script:warnings = @()
 $script:success = @()
@@ -17,27 +18,39 @@ Write-Host "`n=== KINETIXFITT MULTIPLATFORM ===`nPlatform: $Platform`n" -Foregro
 
 # Shared application/native configuration
 Exists (Join-Path $mobile "capacitor.config.ts") "Capacitor config"
+Exists (Join-Path $mobile "native-shell/index.html") "Minimal native shell"
 Exists (Join-Path $mobile "public/manifest.json") "PWA manifest"
 Exists (Join-Path $mobile "public/sw.js") "Service worker"
 Exists (Join-Path $mobile "public/icons/icon-192.png") "PWA icon 192"
 Exists (Join-Path $mobile "public/icons/icon-512.png") "PWA icon 512"
-Exists (Join-Path $mobile "electron/main.js") "Electron main process"
-Exists (Join-Path $mobile "electron/builder.json") "Electron builder config"
+Exists (Join-Path $mobile "electron/main.js") "Electron fallback main process"
+Exists (Join-Path $mobile "electron/builder.json") "Electron fallback builder config"
+Exists (Join-Path $desktop "package.json") "Tauri desktop package"
+Exists (Join-Path $desktop "src-tauri/tauri.conf.json") "Tauri config"
+Exists (Join-Path $desktop "src-tauri/Cargo.toml") "Tauri Cargo manifest"
+Exists (Join-Path $desktop "src-tauri/src/main.rs") "Tauri Rust entrypoint"
 
 $pkg = Get-Content (Join-Path $mobile "package.json") -Raw | ConvertFrom-Json
+$rootPkg = Get-Content (Join-Path $root "package.json") -Raw | ConvertFrom-Json
 $electronVersion = if ($pkg.devDependencies.electron) { $pkg.devDependencies.electron } else { $pkg.dependencies.electron }
-if ($electronVersion) { Ok "Electron dependency declared" } else { Fail "Electron dependency missing" }
+if ($electronVersion) { Ok "Electron fallback dependency declared" } else { Fail "Electron fallback dependency missing" }
 if ($pkg.dependencies.'@capacitor/core' -or $pkg.devDependencies.'@capacitor/core') { Ok "Capacitor core dependency declared" } else { Fail "Capacitor core dependency missing" }
 if ($pkg.dependencies.'@capacitor/android' -or $pkg.devDependencies.'@capacitor/android') { Ok "Capacitor Android dependency declared" } else { Fail "Capacitor Android dependency missing" }
 
+$desktopPkg = Get-Content (Join-Path $desktop "package.json") -Raw | ConvertFrom-Json
+if ($desktopPkg.scripts.dev) { Ok "Tauri desktop dev script" } else { Fail "Tauri desktop dev script missing" }
+if ($desktopPkg.scripts.'build:win') { Ok "Tauri Windows build script" } else { Fail "Tauri Windows build script missing" }
+if ($desktopPkg.scripts.'build:mac') { Ok "Tauri macOS build script" } else { Fail "Tauri macOS build script missing" }
+if ($rootPkg.scripts.'desktop:build:win' -like '*apps/desktop*') { Ok "Root Windows build targets Tauri" } else { Fail "Root Windows build does not target Tauri" }
+if ($rootPkg.scripts.'desktop:build:mac' -like '*apps/desktop*') { Ok "Root macOS build targets Tauri" } else { Fail "Root macOS build does not target Tauri" }
+
 if ($Platform -in @("all","windows","macos")) {
-  if ($pkg.scripts.'desktop:build:win') { Ok "Windows desktop build script" } else { Fail "Windows desktop build script missing" }
-  if ($pkg.scripts.'desktop:build:mac') { Ok "macOS desktop build script" } else { Fail "macOS desktop build script missing" }
-  $builderPath = Join-Path $mobile "electron/builder.json"
-  if (Test-Path $builderPath) {
-    $builder = Get-Content $builderPath -Raw | ConvertFrom-Json
-    if ($builder.win.target -contains "nsis") { Ok "Windows NSIS target" } else { Fail "Windows NSIS target missing" }
-    if ($builder.mac.target -contains "dmg") { Ok "macOS DMG target" } else { Fail "macOS DMG target missing" }
+  $tauriConfigPath = Join-Path $desktop "src-tauri/tauri.conf.json"
+  if (Test-Path $tauriConfigPath) {
+    $tauriConfig = Get-Content $tauriConfigPath -Raw | ConvertFrom-Json
+    if ($tauriConfig.build.frontendDist -eq "https://app.kinetixfitt.com") { Ok "Production desktop uses remote HTTPS frontend" } else { Fail "Production desktop frontend URL is not the expected HTTPS deployment" }
+    if ($tauriConfig.bundle.targets -contains "nsis") { Ok "Tauri Windows NSIS target" } else { Fail "Tauri Windows NSIS target missing" }
+    if ($tauriConfig.bundle.targets -contains "dmg") { Ok "Tauri macOS DMG target" } else { Fail "Tauri macOS DMG target missing" }
   }
 }
 
@@ -54,6 +67,12 @@ if ($Platform -in @("all","android","ios")) {
   }
 }
 
+# Ensure native packaging cannot accidentally grow by pointing Capacitor back at the
+# full public asset tree. The public tree remains the web/PWA asset source.
+$configText = Get-Content (Join-Path $mobile "capacitor.config.ts") -Raw
+if ($configText -match 'webDir:\s*"native-shell"') { Ok "Capacitor webDir is the lightweight native shell" } else { Fail "Capacitor webDir does not use native-shell" }
+if ($configText -notmatch 'cleartext:\s*true') { Ok "Native transport does not allow cleartext" } else { Fail "Native transport allows cleartext" }
+
 # Static manifest integrity checks for referenced local assets.
 $manifestPath = Join-Path $mobile "public/manifest.json"
 if (Test-Path $manifestPath) {
@@ -68,6 +87,7 @@ if (Test-Path $manifestPath) {
 
 # Local runtime prerequisites only; CI performs actual platform builds.
 if (Get-Command node -ErrorAction SilentlyContinue) { Ok "Node.js available" } else { Fail "Node.js unavailable" }
+if (Get-Command rustc -ErrorAction SilentlyContinue) { Ok "Rust compiler available" } else { Warn "Rust compiler unavailable — required for Tauri desktop builds" }
 if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing — run npm ci" }
 
 Write-Host "`n--- SUMMARY ---" -ForegroundColor Cyan
