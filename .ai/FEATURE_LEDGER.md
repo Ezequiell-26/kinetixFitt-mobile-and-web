@@ -33,8 +33,8 @@
 | AI | AI capabilities | Current AI routes/UI | AI provider boundary with explicit OpenAI/GLM configuration | Usage/config where applicable | Provider API | Auth + client ownership + rate limit | AI/security tests where present | PARTIAL | E2_STATIC | Runtime provider test, cost accounting, fallback/capability registry | 2026-09-17 |
 | Notifications | Push/email/in-app | Current notification routes/UI | Reusable push delivery helper + push sender + preference API + message/check-in triggers | Notification + NotificationPreference + PushSubscription | Web Push where configured | Internal send secret + user-owned preferences | Platform smoke tests | PARTIAL | E2_STATIC | Real device delivery, scheduled automation, email delivery | 2026-09-17 |
 | PWA | PWA/service worker | Manifest/service worker routes | Offline outbox + Workbox | IndexedDB + browser cache | Browser APIs | Same-origin mutation allowlist | Platform smoke tests | PARTIAL | E2_STATIC | Browser/device offline runtime proof | 2026-09-17 |
-| Native | Windows desktop | Electron shell + `desktop:build:win` + native workflow | Electron hardened renderer | N/A | Deployed KinetixFitt URL | Same-origin renderer navigation | Native CI | PARTIAL | E2_STATIC | CI build result + installed EXE/update smoke test + signing | 2026-09-17 |
-| Native | macOS desktop | Electron shell + `desktop:build:mac` + native workflow | Electron hardened renderer | N/A | Deployed KinetixFitt URL | Same-origin renderer navigation | Native CI | PARTIAL | E2_STATIC | CI build result + installed DMG/update smoke test + signing/notarization | 2026-09-17 |
+| Native | Windows desktop | Tauri shell + `desktop:build:win`; Electron fallback | Rust/Tauri hardened window | N/A | Deployed KinetixFitt URL | Remote application origin | Native CI | PARTIAL | E2_STATIC | Actual CI installer + installed EXE/update smoke test + signing | 2026-09-17 |
+| Native | macOS desktop | Tauri shell + `desktop:build:mac`; Electron fallback | Rust/Tauri hardened window | N/A | Deployed KinetixFitt URL | Remote application origin | Native CI | PARTIAL | E2_STATIC | Actual CI DMG + installed/update smoke test + signing/notarization | 2026-09-17 |
 | Native | Android | Capacitor config + Android generation/sync + debug/signed workflows | Capacitor Android bridge | Platform storage | HTTPS `CAPACITOR_SERVER_URL` | Platform permissions + app server session | Native CI | PARTIAL | E2_STATIC | CI APK/AAB result + device smoke test + production signing evidence | 2026-09-17 |
 | Native | iOS | Capacitor config + macOS native workflow + iOS Simulator build | Capacitor iOS bridge | Platform storage | HTTPS `CAPACITOR_SERVER_URL` | Platform permissions + app server session | Native CI | PARTIAL | E2_STATIC | CI simulator result + real-device smoke + signed archive/IPA/App Store provisioning | 2026-09-17 |
 | Performance | Core web/mobile performance | Critical screens | Client/server runtime | N/A | Browser/device APIs | N/A | Performance checks where present | UNVERIFIED | E2_STATIC | Fresh measured baselines and budgets | 2026-09-17 |
@@ -47,7 +47,9 @@
 - Payment webhook settlement is scoped to the exact local payment record and checks provider amount/currency before settlement.
 - AI repository guard no longer treats comment-only `fake`/`falso` wording as a blocking high-risk finding; actual source-code findings remain blocking.
 - `apps/web` development uses port 3002 while `apps/mobile` uses 3001.
-- Windows/macOS use the hardened Electron shell; Android/iOS native projects are reproducibly generated in CI.
+- Windows/macOS now use Tauri as the primary desktop shell; Electron remains an explicit fallback.
+- Capacitor native builds use a minimal `native-shell` instead of packaging the heavy `public/` asset tree.
+- Prisma schema was restored from the last known complete model and then amended only with the migration-backed `checkinReminders` field after detecting an accidental destructive overwrite in commit `80cd3651e2d6fb42fe252185be75d927b9e328e1`.
 
 ## Verification caveat
 
