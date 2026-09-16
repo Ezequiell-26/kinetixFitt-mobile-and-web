@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Pin Next-compatible ESLint
-        run: npm install --save-dev --save-exact eslint@8.57.1 eslint-config-next@14.2.5 --prefix apps/web
+        run: npm install --save-dev --save-exact eslint@8.57.1 eslint-config-next@14.2.5 @typescript-eslint/parser@7.18.0 @typescript-eslint/eslint-plugin@7.18.0 --prefix apps/web
 
       - name: Localize web ESLint config
         run: |
