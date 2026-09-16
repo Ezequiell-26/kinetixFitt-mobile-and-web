@@ -1,7 +1,7 @@
 /**
  * Analytics Engine - Sistema de Métricas Avanzado
  * Basado en patrones de Plausible Analytics (MIT)
- * 
+ *
  * Features:
  * - Page views automáticos
  * - Custom events tracking
@@ -45,7 +45,7 @@ class AnalyticsEngine {
     this.domain = domain;
     this.enabled = !!apiKey;
     this.sessionId = this.generateSessionId();
-    
+
     // Auto-detect if running in production
     if (!apiKey && process.env.NEXT_PUBLIC_ANALYTICS_ID) {
       this.apiKey = process.env.NEXT_PUBLIC_ANALYTICS_ID;
@@ -56,40 +56,42 @@ class AnalyticsEngine {
   }
 
   private generateSessionId(): string {
-    return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `sess_${crypto.randomUUID()}`;
+    }
+    return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   private initialize() {
-    if (!this.enabled) {
-      console.log('📊 Analytics disabled - running in development mode');
+    if (!this.enabled || typeof window === 'undefined') {
       return;
     }
 
-    // Track initial page view
-    this.trackPageView();
+    // Track initial page view only in a browser context.
+    void this.trackPageView();
 
     // Track history changes for SPA
-    if (typeof window !== 'undefined') {
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
 
-      history.pushState = (...args) => {
-        originalPushState.apply(history, args);
-        setTimeout(() => this.trackPageView(), 0);
-      };
+    history.pushState = (...args) => {
+      originalPushState.apply(history, args);
+      window.setTimeout(() => void this.trackPageView(), 0);
+    };
 
-      history.replaceState = (...args) => {
-        originalReplaceState.apply(history, args);
-        setTimeout(() => this.trackPageView(), 0);
-      };
+    history.replaceState = (...args) => {
+      originalReplaceState.apply(history, args);
+      window.setTimeout(() => void this.trackPageView(), 0);
+    };
 
-      window.addEventListener('popstate', () => {
-        setTimeout(() => this.trackPageView(), 0);
-      });
-    }
+    window.addEventListener('popstate', () => {
+      window.setTimeout(() => void this.trackPageView(), 0);
+    });
   }
 
   async trackPageView(url?: string, title?: string) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
     const pageUrl = url || window.location.pathname;
     const pageTitle = title || document.title;
     const referrer = document.referrer;
@@ -115,11 +117,15 @@ class AnalyticsEngine {
       ...event,
       timestamp: event.timestamp || Date.now(),
       sessionId: this.sessionId,
-      userId: event.userId || this.getUserId(),
     };
 
     if (this.enabled) {
-      await this.sendEvent(event.name, eventData.properties);
+      await this.sendEvent(event.name, {
+        ...eventData.properties,
+        session_id: eventData.sessionId,
+        user_id: eventData.userId,
+        client_timestamp: new Date(eventData.timestamp).toISOString(),
+      });
     } else {
       this.queue.push(eventData);
       console.log('📊 Event queued:', eventData);
@@ -146,14 +152,19 @@ class AnalyticsEngine {
     workoutId: string,
     duration: number,
     caloriesBurned: number,
-    exercisesCompleted: number
+    exercisesCompleted: number,
+    totalExercises: number
   ) {
+    const safeTotalExercises = Math.max(0, totalExercises);
+    const safeCompleted = Math.min(Math.max(0, exercisesCompleted), safeTotalExercises);
+
     await this.trackCustom('workout_completed', {
       workout_id: workoutId,
-      duration_seconds: duration,
-      calories_burned: caloriesBurned,
-      exercises_completed: exercisesCompleted,
-      completion_rate: (exercisesCompleted / 10) * 100, // Assuming 10 exercises max
+      duration_seconds: Math.max(0, duration),
+      calories_burned: Math.max(0, caloriesBurned),
+      exercises_completed: safeCompleted,
+      exercises_total: safeTotalExercises,
+      completion_rate: safeTotalExercises > 0 ? (safeCompleted / safeTotalExercises) * 100 : 0,
     });
   }
 
@@ -183,22 +194,17 @@ class AnalyticsEngine {
   }
 
   private getUserId(): string | undefined {
-    if (typeof localStorage !== 'undefined') {
-      let userId = localStorage.getItem('kinetix_user_id');
-      if (!userId) {
-        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('kinetix_user_id', userId);
-      }
-      return userId;
-    }
-    return undefined;
+    if (typeof window === 'undefined') return undefined;
+    const userId = window.localStorage.getItem('kinetix_user_id');
+    return userId || undefined;
   }
 
   private async sendEvent(eventName: string, properties?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.enabled || typeof window === 'undefined') return;
 
     const payload = {
-      name: eventName,
+      event: eventName,
+      timestamp: new Date().toISOString(),
       url: window.location.href,
       domain: this.domain,
       screen_width: window.screen.width,
@@ -208,19 +214,16 @@ class AnalyticsEngine {
         ...this.userProperties,
         ...properties,
       },
-      session_id: this.sessionId,
-      user_id: this.getUserId(),
     };
 
     try {
-      // Send to analytics endpoint (replace with your analytics service)
       const response = await fetch('/api/analytics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-        keepalive: true, // Ensure request completes even if page closes
+        keepalive: true,
       });
 
       if (!response.ok) {
