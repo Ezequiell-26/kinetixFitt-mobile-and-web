@@ -111,6 +111,8 @@ jobs:
       - name: Install repository
         run: npm ci
         working-directory: .
+      - name: Install iOS Capacitor platform
+        run: npm install @capacitor/ios@8.5.2 --no-save --package-lock=false
       - name: Generate iOS project
         run: npx --yes @capacitor/cli add ios
       - name: Sync Capacitor iOS
