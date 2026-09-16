@@ -7,7 +7,6 @@ const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || process.env.MERCADO_PAGO_
 const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET || process.env.MERCADO_PAGO_WEBHOOK_SECRET;
 
 type Provider = "stripe" | "mercadopago";
-
 type SettlementStatus = "PAGADO" | "PENDIENTE" | "VENCIDO";
 
 function constantTimeHexEqual(a: string, b: string) {
@@ -32,7 +31,6 @@ function verifyMpSignature(req: Request, dataId: string | null, secret: string) 
   return constantTimeHexEqual(digest, v1);
 }
 
-/** Claims an event atomically. Returns false for duplicates/races. */
 async function claimEvent(provider: Provider, eventId: string) {
   const claimed = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     INSERT INTO "PaymentWebhookEvent" ("id", "provider", "eventId")
@@ -89,7 +87,7 @@ async function settlePayment(input: {
     },
   });
 
-  if (updated.count > 0 && input.status === "PAGADO") {
+  if (updated.count > 0 && input.status === "PAGADO" && payment.clientId) {
     const subscription = await prisma.subscription.findUnique({ where: { clientId: payment.clientId } });
     if (subscription) {
       const nextPayment = new Date();
