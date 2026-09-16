@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertTrainerOwnsClient } from "@/lib/authorization";
+import { sendPushToUser } from "@/lib/push-server";
 
 const MAX_MESSAGE_LENGTH = 500;
 const userSummarySelect = { id: true, name: true, email: true, avatar: true, role: true } as const;
@@ -120,6 +121,15 @@ export async function POST(req: Request) {
       link: s.role === "TRAINER" ? "/client/messages" : "/trainer/messages",
     },
   });
+
+  void sendPushToUser({
+    userId: receiverId!,
+    type: "coach_message",
+    title: `Nuevo mensaje de ${s.name}`,
+    body: safeContent.slice(0, 100),
+    url: s.role === "TRAINER" ? "/client/messages" : "/trainer/messages",
+    data: { messageId: msg.id, clientId: clientId || undefined },
+  }).catch((error) => console.error("[messages] push trigger failed", error));
 
   return NextResponse.json(msg, { status: 201 });
 }
