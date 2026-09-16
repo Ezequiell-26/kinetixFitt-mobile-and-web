@@ -8,6 +8,8 @@ const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET || process.env.MERCADO_P
 
 type Provider = "stripe" | "mercadopago";
 
+type SettlementStatus = "PAGADO" | "PENDIENTE" | "VENCIDO";
+
 function constantTimeHexEqual(a: string, b: string) {
   const aa = Buffer.from(a, "utf8");
   const bb = Buffer.from(b, "utf8");
@@ -42,53 +44,68 @@ async function claimEvent(provider: Provider, eventId: string) {
 }
 
 async function settlePayment(input: {
-  paymentId?: string | null;
-  clientId?: string | null;
-  status: "PAGADO" | "PENDIENTE" | "VENCIDO";
+  paymentId: string;
+  status: SettlementStatus;
   method: string;
   externalDescription: string;
   amount?: number | null;
+  currency?: string | null;
 }) {
-  let clientId = input.clientId ?? null;
-  if (input.paymentId && !clientId) {
-    const payment = await prisma.payment.findUnique({ where: { id: input.paymentId }, select: { clientId: true } });
-    clientId = payment?.clientId ?? null;
+  const payment = await prisma.payment.findUnique({
+    where: { id: input.paymentId },
+    select: { id: true, clientId: true, amount: true, currency: true, status: true },
+  });
+  if (!payment) return { updated: false, reason: "payment_not_found" as const };
+
+  if (input.amount != null) {
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      return { updated: false, reason: "invalid_provider_amount" as const };
+    }
+    if (Math.abs(Number(payment.amount) - input.amount) > 0.01) {
+      console.error("[WEBHOOK] payment amount mismatch", {
+        paymentId: payment.id,
+        expected: Number(payment.amount),
+        received: input.amount,
+      });
+      return { updated: false, reason: "amount_mismatch" as const };
+    }
   }
 
-  const where = input.paymentId
-    ? { id: input.paymentId, status: { not: "PAGADO" as const } }
-    : clientId
-      ? { clientId, status: "PENDIENTE" as const }
-      : null;
-  if (!where) return false;
+  if (input.currency && payment.currency.toUpperCase() !== input.currency.toUpperCase()) {
+    console.error("[WEBHOOK] payment currency mismatch", {
+      paymentId: payment.id,
+      expected: payment.currency,
+      received: input.currency,
+    });
+    return { updated: false, reason: "currency_mismatch" as const };
+  }
 
   const updated = await prisma.payment.updateMany({
-    where,
+    where: { id: payment.id, status: { not: "PAGADO" } },
     data: {
       status: input.status,
       method: input.method,
-      ...(input.amount && Number.isFinite(input.amount) && input.amount > 0 ? { amount: input.amount } : {}),
       description: input.externalDescription.slice(0, 500),
     },
   });
 
-  if (updated.count > 0 && input.status === "PAGADO" && clientId) {
-    const subscription = await prisma.subscription.findUnique({ where: { clientId } });
+  if (updated.count > 0 && input.status === "PAGADO") {
+    const subscription = await prisma.subscription.findUnique({ where: { clientId: payment.clientId } });
     if (subscription) {
       const nextPayment = new Date();
       nextPayment.setDate(nextPayment.getDate() + 30);
       await prisma.subscription.update({
-        where: { clientId },
+        where: { clientId: payment.clientId },
         data: {
           status: "ACTIVA",
           nextPayment,
-          ...(input.amount ? { price: input.amount } : {}),
+          ...(input.amount != null ? { price: input.amount } : {}),
         },
       });
     }
   }
 
-  return updated.count > 0;
+  return { updated: updated.count > 0, reason: updated.count > 0 ? "updated" : "already_settled" as const };
 }
 
 function subscriptionStatus(status: string) {
@@ -122,36 +139,43 @@ export async function POST(req: Request) {
       try {
         const payload = event.data.object as unknown as Record<string, unknown>;
         const metadata = payload.metadata && typeof payload.metadata === "object" ? payload.metadata as Record<string, unknown> : {};
+        const paymentId = typeof metadata.paymentId === "string" ? metadata.paymentId : null;
+
         switch (event.type) {
           case "checkout.session.completed":
           case "checkout.session.async_payment_succeeded":
-            await settlePayment({
-              paymentId: typeof metadata.paymentId === "string" ? metadata.paymentId : null,
-              clientId: typeof metadata.clientId === "string" ? metadata.clientId : null,
-              status: "PAGADO",
-              method: "STRIPE",
-              externalDescription: `Pago vía Stripe · ${event.id}`,
-              amount: typeof payload.amount_total === "number" ? payload.amount_total / 100 : null,
-            });
+            if (paymentId) {
+              await settlePayment({
+                paymentId,
+                status: "PAGADO",
+                method: "STRIPE",
+                externalDescription: `Pago vía Stripe · ${event.id}`,
+                amount: typeof payload.amount_total === "number" ? payload.amount_total / 100 : null,
+                currency: typeof payload.currency === "string" ? payload.currency : null,
+              });
+            }
             break;
           case "payment_intent.succeeded":
-            await settlePayment({
-              paymentId: typeof metadata.paymentId === "string" ? metadata.paymentId : null,
-              clientId: typeof metadata.clientId === "string" ? metadata.clientId : null,
-              status: "PAGADO",
-              method: "STRIPE",
-              externalDescription: `PaymentIntent · ${event.id}`,
-              amount: typeof payload.amount_received === "number" ? payload.amount_received / 100 : null,
-            });
+            if (paymentId) {
+              await settlePayment({
+                paymentId,
+                status: "PAGADO",
+                method: "STRIPE",
+                externalDescription: `PaymentIntent · ${event.id}`,
+                amount: typeof payload.amount_received === "number" ? payload.amount_received / 100 : null,
+                currency: typeof payload.currency === "string" ? payload.currency : null,
+              });
+            }
             break;
           case "payment_intent.payment_failed":
-            await settlePayment({
-              paymentId: typeof metadata.paymentId === "string" ? metadata.paymentId : null,
-              clientId: typeof metadata.clientId === "string" ? metadata.clientId : null,
-              status: "VENCIDO",
-              method: "STRIPE",
-              externalDescription: `Pago rechazado · ${event.id}`,
-            });
+            if (paymentId) {
+              await settlePayment({
+                paymentId,
+                status: "VENCIDO",
+                method: "STRIPE",
+                externalDescription: `Pago rechazado · ${event.id}`,
+              });
+            }
             break;
           case "customer.subscription.updated":
           case "customer.subscription.deleted": {
@@ -178,8 +202,7 @@ export async function POST(req: Request) {
     }
 
     if (mpSignature) {
-      if (!MP_WEBHOOK_SECRET) return NextResponse.json({ error: "Mercado Pago no configurado" }, { status: 500 });
-      if (!MP_ACCESS_TOKEN) return NextResponse.json({ error: "Mercado Pago no configurado" }, { status: 500 });
+      if (!MP_WEBHOOK_SECRET || !MP_ACCESS_TOKEN) return NextResponse.json({ error: "Mercado Pago no configurado" }, { status: 500 });
       const dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id");
       if (!verifyMpSignature(req, dataId, MP_WEBHOOK_SECRET)) return NextResponse.json({ error: "Invalid MP signature" }, { status: 401 });
       let data: Record<string, unknown>;
@@ -199,6 +222,7 @@ export async function POST(req: Request) {
           if (!response.ok) throw new Error("Mercado Pago payment lookup failed");
           const payment = await response.json() as Record<string, unknown>;
           const externalReference = typeof payment.external_reference === "string" ? payment.external_reference : null;
+          if (!externalReference) throw new Error("Mercado Pago payment missing external reference");
           const status = payment.status === "approved" ? "PAGADO" : payment.status === "pending" || payment.status === "in_process" ? "PENDIENTE" : "VENCIDO";
           await settlePayment({
             paymentId: externalReference,
@@ -206,6 +230,7 @@ export async function POST(req: Request) {
             method: "MERCADOPAGO",
             externalDescription: `Mercado Pago · ${dataId}`,
             amount: typeof payment.transaction_amount === "number" ? payment.transaction_amount : null,
+            currency: typeof payment.currency_id === "string" ? payment.currency_id : null,
           });
         }
       } catch (processingError) {
