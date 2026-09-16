@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "task": "normal-development",
-  "status": "template",
+  "task": "auth-session-hardening",
+  "status": "approved-high-risk-repair",
   "owner": "ai-agent",
   "allowedPaths": [
     ".ai/**",
@@ -36,6 +36,7 @@
     "database migration history",
     "existing CI gates"
   ],
+  "approvedHighRisk": true,
   "highRiskPathsRequireExplicitApproval": [
     "apps/mobile/prisma/**",
     "apps/mobile/src/app/api/auth/**",
