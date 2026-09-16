@@ -1,3 +1,432 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  TRAINER
+  CLIENT
+}
+
+enum ClientStatus {
+  ACTIVO
+  PAUSADO
+  PENDIENTE
+  FINALIZADO
+}
+
+enum Goal {
+  PERDIDA_GRASA
+  HIPERTROFIA
+  FUERZA
+  RECOMPOSICION
+  OTRO
+}
+
+enum SubscriptionPlan {
+  BASICO
+  PERSONALIZADO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVA
+  VENCIDA
+  CANCELADA
+  PENDIENTE
+}
+
+enum PaymentStatus {
+  PAGADO
+  PENDIENTE
+  VENCIDO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile?
+  client    Client?
+  trainerProfile TrainerProfile?
+  trainerClients Client[] @relation("TrainerClients")
+  trainerPrograms Program[] @relation("TrainerPrograms")
+  messagesSent Message[] @relation("Sent")
+  messagesReceived Message[] @relation("Received")
+  notifications Notification[]
+  notificationPreference NotificationPreference?
+  checkIns CheckIn[]
+  workoutLogs WorkoutLog[]
+  sessions Session[]
+  pushSubscriptions PushSubscription[]
+  progressMeasurements ProgressMeasurement[]
+  progressPhotos ProgressPhoto[]
+
+  @@index([role])
+}
+
+model Profile {
+  id                  String  @id @default(cuid())
+  userId              String  @unique
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age                 Int?
+  goal                Goal?
+  experience          String?
+  availability        Int?
+  equipment           String?
+  notes               String?
+  weight              Float?
+  height              Float?
+  bio                 String?
+  onboardingCompleted Boolean @default(false)
+  onboardingStep      Int     @default(0)
+  xp                  Int     @default(0)
+  photoUrl            String?
+}
+
+model TrainerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio    String?
+  specialty String?
+}
+
+model Client {
+  id            String       @id @default(cuid())
+  userId        String?      @unique
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  trainerId     String?
+  trainer       User?        @relation("TrainerClients", fields: [trainerId], references: [id], onDelete: SetNull)
+  name          String
+  email         String       @unique
+  avatar        String?
+  goal          Goal         @default(HIPERTROFIA)
+  status        ClientStatus @default(ACTIVO)
+  plan          SubscriptionPlan @default(PERSONALIZADO)
+  startDate     DateTime @default(now())
+  nextReview    DateTime?
+  notes         String?
+  trainerNotes  String?
+  age           Int?
+  weight        Float?
+  height        Float?
+  experience    String?
+  availability  Int?
+  equipment     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  assignedProgramId String?
+  assignedProgram Program? @relation(fields: [assignedProgramId], references: [id], onDelete: SetNull)
+  workoutLogs   WorkoutLog[]
+  checkIns      CheckIn[]
+  messages      Message[]
+  progressMeasurements ProgressMeasurement[]
+  progressPhotos ProgressPhoto[]
+  subscription  Subscription?
+  payments      Payment[]
+
+  @@index([email])
+  @@index([status])
+  @@index([plan])
+  @@index([createdAt])
+  @@index([trainerId])
+}
+
+model Exercise {
+  id            String @id @default(cuid())
+  name          String
+  muscleGroup   String
+  pattern       String?
+  equipment     String?
+  level         String @default("Intermedio")
+  image         String?
+  video         String?
+  instructions  String?
+  errors        String?
+  variants      String?
+  substitutions String?
+  createdAt     DateTime @default(now())
+  workoutExercises WorkoutExercise[]
+}
+
+model Program {
+  id          String @id @default(cuid())
+  trainerId   String?
+  trainer     User? @relation("TrainerPrograms", fields: [trainerId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  durationWeeks Int @default(4)
+  frequency   Int @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  phases      Phase[]
+  weeks       ProgramWeek[]
+  clients     Client[]
+
+  @@index([trainerId])
+  @@index([updatedAt])
+}
+
+model Phase {
+  id        String @id @default(cuid())
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int @default(0)
+  weeks     ProgramWeek[]
+  createdAt DateTime @default(now())
+
+  @@index([programId])
+}
+
+model ProgramWeek {
+  id        String @id @default(cuid())
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  phaseId   String?
+  phase     Phase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  weekNumber Int
+  workouts  Workout[]
+
+  @@unique([programId, weekNumber])
+}
+
+model Workout {
+  id            String @id @default(cuid())
+  weekId        String
+  week          ProgramWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  dayNumber     Int
+  name          String
+  description   String?
+  estimatedMin  Int @default(60)
+  exercises     WorkoutExercise[]
+  logs          WorkoutLog[]
+}
+
+model WorkoutExercise {
+  id          String @id @default(cuid())
+  workoutId   String
+  workout     Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  order       Int @default(0)
+  sets        Int @default(3)
+  reps        String @default("8-12")
+  rir         Int?
+  rpe         Int?
+  restSec     Int @default(90)
+  tempo       String?
+  load        String?
+  notes       String?
+  supersetGroup String?
+  isCircuit   Boolean @default(false)
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+model WorkoutLog {
+  id         String @id @default(cuid())
+  userId     String?
+  user       User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clientId   String?
+  client     Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  workoutId  String?
+  workout    Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  workoutName String?
+  date       DateTime @default(now())
+  durationMin Int?
+  comment    String?
+  completed  Boolean @default(true)
+  sets       ExerciseSetLog[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([date])
+  @@index([clientId, date])
+}
+
+model ExerciseSetLog {
+  id           String @id @default(cuid())
+  logId        String
+  log          WorkoutLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  exerciseName String
+  setNumber    Int
+  weight       Float?
+  reps         Int?
+  rir          Int?
+  rpe          Int?
+  completed    Boolean @default(true)
+}
+
+model ProgressMeasurement {
+  id        String @id @default(cuid())
+  userId    String?
+  user      User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clientId  String?
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  date      DateTime @default(now())
+  weight    Float?
+  chest     Float?
+  waist     Float?
+  arm       Float?
+  leg       Float?
+  bodyFat   Float?
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([date])
+}
+
+model ProgressPhoto {
+  id        String @id @default(cuid())
+  userId    String?
+  user      User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clientId  String?
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  url       String
+  date      DateTime @default(now())
+  note      String?
+  isPrivate Boolean @default(true)
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([date])
+}
+
+model CheckIn {
+  id        String @id @default(cuid())
+  userId    String?
+  user      User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clientId  String?
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  date      DateTime @default(now())
+  energia   Int?
+  sueno     Int?
+  estres    Int?
+  entrenos  Int?
+  rendimiento Int?
+  molestias String?
+  alimentacion String?
+  progreso  Int?
+  comentario String?
+  fotos     String?
+  trainerReply String?
+  reviewed  Boolean @default(false)
+
+  @@index([reviewed])
+  @@index([date])
+  @@index([clientId])
+  @@index([userId])
+  @@index([clientId, date])
+}
+
+model Message {
+  id         String @id @default(cuid())
+  senderId   String
+  sender     User @relation("Sent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User @relation("Received", fields: [receiverId], references: [id], onDelete: Cascade)
+  clientId   String?
+  client     Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  content    String
+  image      String?
+  read       Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([read])
+  @@index([receiverId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String @id @default(cuid())
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String @default("info")
+  read      Boolean @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model Subscription {
+  id        String @id @default(cuid())
+  clientId  String @unique
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @default(PERSONALIZADO)
+  status    SubscriptionStatus @default(ACTIVA)
+  nextPayment DateTime?
+  price     Float?
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String @id @default(cuid())
+  clientId  String?
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  email     String?
+  amount    Float
+  currency  String @default("ARS")
+  status    PaymentStatus @default(PENDIENTE)
+  method    String?
+  date      DateTime @default(now())
+  description String?
+  checkoutIdempotencyKey String? @unique
+  providerCheckoutId String?
+
+  @@index([clientId])
+  @@index([date])
+  @@index([status])
+  @@index([providerCheckoutId])
+}
+
+model PaymentWebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String
+  eventId   String   
+  createdAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
   expiresAt DateTime
   revoked   Boolean  @default(false)
   lastUsed  DateTime @default(now())
@@ -11,17 +440,16 @@ model NotificationPreference {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enabled          Boolean @default(true)
   emailEnabled     Boolean @default(true)
   pushEnabled      Boolean @default(true)
   smsEnabled       Boolean @default(false)
   whatsappEnabled  Boolean @default(false)
-  workoutReminders Boolean @default(true)
-  nutritionTips    Boolean @default(true)
-  progressUpdates  Boolean @default(true)
-  checkinReminders Boolean @default(true)
+  workoutReminders    Boolean @default(true)
+  nutritionTips       Boolean @default(true)
+  progressUpdates     Boolean @default(true)
+  checkinReminders    Boolean @default(true)
   messageNotifications Boolean @default(true)
-  paymentReminders Boolean @default(true)
+  paymentReminders    Boolean @default(true)
   timezone       String  @default("America/Argentina/Buenos_Aires")
   quietStart     String  @default("22:00")
   quietEnd       String  @default("08:00")
@@ -46,3 +474,15 @@ model PushSubscription {
 }
 
 model PrivateAsset {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    String?
+  type        String
+  filename    String   @unique
+  contentType String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+  @@index([clientId, type, createdAt])
+}
