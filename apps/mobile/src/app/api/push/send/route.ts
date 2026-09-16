@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { canReceivePush, PushPreferenceSnapshot } from "@/lib/push-server";
+import { canReceivePush } from "@/lib/push-server";
+import type { PushPreferenceSnapshot } from "@/lib/push-server";
 
 const notificationTypeSchema = z.enum([
   "workout_reminder",
