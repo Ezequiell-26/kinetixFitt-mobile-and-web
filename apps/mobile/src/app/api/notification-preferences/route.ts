@@ -83,7 +83,7 @@ export async function GET() {
 
   const prefs = await prisma.notificationPreference.upsert({
     where: { userId: session.id },
-    create: {},
+    create: { userId: session.id },
     update: {},
   });
 
