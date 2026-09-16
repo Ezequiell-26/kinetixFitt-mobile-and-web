@@ -100,7 +100,8 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Datos de mensaje inválidos" }, { status: 400 });
 
   const { content } = parsed.data;
-  let { receiverId, clientId } = parsed.data;
+  const receiverId = parsed.data.receiverId;
+  let { clientId } = parsed.data;
   const safeContent = sanitizeMessageContent(content);
 
   if (s.role === "CLIENT") {
