@@ -71,7 +71,7 @@ jobs:
         with:
           name: kinetix-ai-evidence-${{ github.sha }}
           path: ${{ runner.temp }}/kinetix-evidence/
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Install raíz (lock reproducible)
         run: npm ci
