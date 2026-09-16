@@ -162,15 +162,30 @@ At minimum:
 
 Payment, authorization, secret-management, and deployment failures are release blockers.
 
-## 12. 2026-09-16 verified change record
+## 12. 2026-09-16 change record
 
+### Previously merged
 - `/client/tools` category navigation now synchronizes its `?cat=` URL state with browser back/forward and shared category links.
 - Web Push activation in `PushCenter` now obtains the VAPID public key, registers the Service Worker subscription, and persists the subscription through `/api/push/subscribe`.
 - `/api/push/public-key` exposes only the non-secret VAPID public key and returns `503` when push infrastructure is not configured.
-- The Push Center no longer treats browser notification permission alone as proof that a push subscription exists.
-- The global mobile 404 experience now follows the KinetixFitt visual system and keeps the primary recovery path accessible.
-- The changes were merged to `main` in commit `663ef2c775523d38d2292c37855ab06a4d03a7ad`.
-- Vercel status checks for the change reported `build-rate-limit`; that external deployment limitation is distinct from a code build failure and still requires a successful deployment check before production release.
+- The global mobile 404 experience follows the KinetixFitt visual system and keeps the primary recovery path accessible.
+- Those changes were merged to `main` in commit `663ef2c775523d38d2292c37855ab06a4d03a7ad`.
+- Vercel previously reported an external `build-rate-limit`; this must not be confused with a confirmed application build failure.
+
+### Current iteration
+- The Service Worker offline mutation queue now uses IndexedDB persistence for a bounded allowlist of same-origin API mutations, retains request bodies/headers needed for replay, registers Background Sync when available, and applies retry limits. This reduces the previous in-memory queue/data-loss risk.
+- The client offline outbox in `apps/mobile/src/lib/offline-sync.ts` now uses IndexedDB as its primary store, with migration from the legacy `localStorage` queue and a compatibility cache for synchronous callers.
+- Push notification preferences are now interactive in `PushCenter` rather than read-only UI controls. Workout, check-in and coach-message preferences are persisted through `/api/notification-preferences`.
+- `NotificationPreference` now has a dedicated `checkinReminders` field and the versioned migration `20260916200000_checkin_notification_preference` adds it with a safe `DEFAULT true`.
+- The notification-preferences API now exposes the persisted `enabled` state and maps `checkin_reminder` to the dedicated database field.
+- `KinetixFitt AI` provider configuration now distinguishes OpenAI and GLM-style deployments, refuses an incomplete GLM configuration instead of accidentally using a GLM key against the OpenAI default endpoint, bounds output tokens, and explicitly marks database context as data rather than instructions.
+- AI client scoping remains protected by `assertTrainerOwnsClient()` before trainer access to client-specific context.
+
+### Verification status for this iteration
+- GitHub combined status for commit `e9aa20e17fc477bfcc3fb5cc09cf8d5f910b6314` returned no status entries.
+- GitHub workflow lookup for commit `e9aa20e17fc477bfcc3fb5cc09cf8d5f910b6314` returned no workflow runs.
+- Therefore this iteration is `UNVERIFIED_RUNTIME` / `PARTIAL` from an evidence perspective: code was updated on `main`, but build, typecheck, tests, migration application and live runtime verification were not executed through the available GitHub interface.
+- The next release gate is to run the repository's real typecheck/lint/unit/security/E2E gates, validate the new Prisma migration against the target PostgreSQL database, and perform a deployment/preview smoke test.
 
 ## 13. Updating this document
 
