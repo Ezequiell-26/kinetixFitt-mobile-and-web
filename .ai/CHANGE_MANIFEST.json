@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "task": "foundation-governance-v4",
-  "status": "template",
+  "task": "foundation-governance-v4-db-repair",
+  "status": "approved-high-risk-repair",
   "owner": "ai-agent",
   "allowedPaths": [
     ".ai/**",
@@ -31,6 +31,7 @@
     "database migration history",
     "existing CI gates"
   ],
+  "approvedHighRisk": true,
   "highRiskPathsRequireExplicitApproval": [
     "apps/mobile/prisma/**",
     "apps/mobile/app/api/auth/**",
