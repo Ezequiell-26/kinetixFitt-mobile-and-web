@@ -34,21 +34,15 @@ function sanitize(input: unknown, max = MAX_INPUT) {
 
 function resolveProviderConfig() {
   if (!AI_API_KEY) return null;
-
   if (PROVIDER === "openai") {
-    return {
-      baseUrl: (CONFIGURED_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
-      model: DEFAULT_OPENAI_MODEL,
-    };
+    return { baseUrl: (CONFIGURED_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""), model: DEFAULT_OPENAI_MODEL };
   }
-
   if (PROVIDER === "glm") {
     const baseUrl = CONFIGURED_BASE_URL || process.env.GLM_API_BASE_URL?.trim();
     const model = process.env.AI_MODEL?.trim() || process.env.GLM_MODEL?.trim();
     if (!baseUrl || !model) return null;
     return { baseUrl: baseUrl.replace(/\/$/, ""), model };
   }
-
   return null;
 }
 
@@ -123,8 +117,8 @@ export async function POST(req: Request) {
         where: { clientId: scopedClientId },
         orderBy: { date: "desc" },
         take: 3,
-        select: { date: true, energia: true, sueno: true, estres: true, rendimiento: true, entrenos: true, molestias: true, progresso: true, comentario: true },
-      }).catch(() => []),
+        select: { date: true, energia: true, sueno: true, estres: true, rendimiento: true, entrenos: true, molestias: true, progreso: true, comentario: true },
+      }),
       prisma.progressMeasurement.findMany({
         where: { clientId: scopedClientId },
         orderBy: { date: "desc" },
