@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { canReceivePush, getPushPreferences } from "@/lib/push-server";
+import { canReceivePush, PushPreferenceSnapshot } from "@/lib/push-server";
 
 const notificationTypeSchema = z.enum([
   "workout_reminder",
@@ -44,6 +44,20 @@ function isAuthorizedInternalRequest(request: NextRequest) {
   return auth.startsWith("Bearer ") && safeSecretEqual(auth.slice(7), configured);
 }
 
+const defaultPreferences: PushPreferenceSnapshot = {
+  enabled: true,
+  pushEnabled: true,
+  workoutReminders: true,
+  nutritionTips: true,
+  progressUpdates: true,
+  checkinReminders: true,
+  messageNotifications: true,
+  paymentReminders: true,
+  timezone: "UTC",
+  quietStart: null,
+  quietEnd: null,
+};
+
 export async function POST(request: NextRequest) {
   if (!isAuthorizedInternalRequest(request)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -77,9 +91,29 @@ export async function POST(request: NextRequest) {
     }
 
     const userIdsToCheck = [...new Set(subscriptions.map((subscription) => subscription.userId))];
-    const preferences = await Promise.all(userIdsToCheck.map(async (userId) => [userId, await getPushPreferences(userId)] as const));
-    const preferenceMap = new Map(preferences);
-    const eligible = subscriptions.filter((subscription) => canReceivePush(type, preferenceMap.get(subscription.userId)!, new Date()));
+    const preferences = await prisma.notificationPreference.findMany({
+      where: { userId: { in: userIdsToCheck } },
+      select: {
+        userId: true,
+        enabled: true,
+        pushEnabled: true,
+        workoutReminders: true,
+        nutritionTips: true,
+        progressUpdates: true,
+        checkinReminders: true,
+        messageNotifications: true,
+        paymentReminders: true,
+        timezone: true,
+        quietStart: true,
+        quietEnd: true,
+      },
+    });
+    const preferenceMap = new Map(preferences.map((prefs) => [prefs.userId, prefs]));
+    const now = new Date();
+    const eligible = subscriptions.filter((subscription) => {
+      const prefs = preferenceMap.get(subscription.userId) ?? defaultPreferences;
+      return canReceivePush(type, prefs, now);
+    });
 
     if (eligible.length === 0) {
       return NextResponse.json({ success: true, sent: 0, failed: 0, total: subscriptions.length, skipped: subscriptions.length });
