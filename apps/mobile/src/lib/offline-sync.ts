@@ -52,12 +52,16 @@ export function useOnlineStatus(): boolean {
   return online;
 }
 
+function isSafeEndpoint(endpoint: unknown): endpoint is string {
+  return typeof endpoint === "string" && endpoint.startsWith("/api/") && !endpoint.startsWith("//");
+}
+
 function isPendingOperation(value: unknown): value is PendingOperation {
   if (!value || typeof value !== "object") return false;
   const op = value as Partial<PendingOperation>;
   return (
     typeof op.id === "string" &&
-    typeof op.endpoint === "string" &&
+    isSafeEndpoint(op.endpoint) &&
     ["workout-log", "measurement", "checkin", "message"].includes(String(op.type)) &&
     ["POST", "PUT", "PATCH", "DELETE"].includes(String(op.method)) &&
     typeof op.timestamp === "number" &&
@@ -154,7 +158,7 @@ async function deleteIndexedOperation(id: string): Promise<void> {
 }
 
 async function replaceIndexedQueue(queue: PendingOperation[]): Promise<void> {
-  const bounded = queue.slice(-MAX_QUEUE_SIZE);
+  const bounded = queue.filter((operation) => isPendingOperation(operation)).slice(-MAX_QUEUE_SIZE);
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -196,7 +200,7 @@ async function readQueue(): Promise<PendingOperation[]> {
 }
 
 async function writeQueue(queue: PendingOperation[]): Promise<void> {
-  const bounded = queue.slice(-MAX_QUEUE_SIZE);
+  const bounded = queue.filter((operation) => isPendingOperation(operation)).slice(-MAX_QUEUE_SIZE);
   try {
     await replaceIndexedQueue(bounded);
   } catch {
@@ -216,6 +220,10 @@ export async function queueOperation(
 ): Promise<string> {
   if (typeof window === "undefined") {
     throw new Error("Offline queue solo está disponible en el navegador");
+  }
+
+  if (!isSafeEndpoint(operation.endpoint)) {
+    throw new Error("El endpoint offline debe pertenecer al mismo origen y comenzar por /api/");
   }
 
   const serialized = JSON.stringify(operation.data);
