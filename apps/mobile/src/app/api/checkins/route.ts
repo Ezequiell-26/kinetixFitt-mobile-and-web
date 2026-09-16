@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertTrainerOwnsClient } from "@/lib/authorization";
 import { sendPushToUser } from "@/lib/push-server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 const userSummarySelect = { id: true, name: true, email: true, avatar: true, role: true } as const;
 const clientSummarySelect = { id: true, name: true, email: true, avatar: true, trainerId: true, userId: true, goal: true, status: true, plan: true } as const;
@@ -81,6 +82,15 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "No auth" }, { status: 401 });
+
+  const limit = await checkRateLimit(getClientIp(req), `checkins:${s.id}`, { max: 10, windowMs: 10 * 60_000 });
+  if (!limit.success) {
+    return NextResponse.json({ error: "Demasiados envíos de check-in, intentá de nuevo más tarde" }, {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil(limit.resetMs / 1000)) },
+    });
+  }
+
   const parsed = checkinSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Datos de check-in inválidos" }, { status: 400 });
   const body = parsed.data;
@@ -135,6 +145,13 @@ export async function PATCH(req: Request) {
   const s = await getSession();
   if (!s || s.role !== "TRAINER") return NextResponse.json({ error: "Solo trainer" }, { status: 403 });
   try {
+    const limit = await checkRateLimit(getClientIp(req), `checkin-review:${s.id}`, { max: 30, windowMs: 10 * 60_000 });
+    if (!limit.success) {
+      return NextResponse.json({ error: "Demasiadas revisiones de check-in, intentá de nuevo más tarde" }, {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(limit.resetMs / 1000)) },
+      });
+    }
     const parsed = checkinPatchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Datos de revisión inválidos" }, { status: 400 });
     const { id, trainerReply, reviewed } = parsed.data;
