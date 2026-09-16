@@ -94,6 +94,8 @@ export interface SyncTask {
   nextAttemptAt?: number;
 }
 
+const MAX_TASK_BODY_BYTES = 256 * 1024;
+
 function isBrowser() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
@@ -111,6 +113,10 @@ function taskBody(task: SyncTask) {
   return body;
 }
 
+function bodySizeBytes(body: Record<string, unknown>) {
+  return new TextEncoder().encode(JSON.stringify(body)).byteLength;
+}
+
 export class BackgroundSyncManager {
   private readonly STORAGE_KEY = "kinetix_sync_queue";
   private readonly MAX_RETRIES = 5;
@@ -126,6 +132,15 @@ export class BackgroundSyncManager {
 
   public async queueTask(task: Omit<SyncTask, "timestamp" | "retryCount">): Promise<void> {
     if (!isBrowser()) return;
+
+    const endpoint = typeof task.data.endpoint === "string" ? task.data.endpoint : null;
+    if (!endpoint || !endpoint.startsWith("/api/")) {
+      throw new Error(`Missing safe API endpoint for sync task ${task.id}`);
+    }
+    if (bodySizeBytes(taskBody(task as SyncTask)) > MAX_TASK_BODY_BYTES) {
+      throw new Error(`Sync task ${task.id} exceeds the 256 KB offline payload limit`);
+    }
+
     const queue = this.getQueue();
     const existing = queue.some((item) => item.id === task.id);
     if (existing) return;
@@ -161,17 +176,21 @@ export class BackgroundSyncManager {
           await this.executeTask(task);
         } catch (error) {
           const retryCount = task.retryCount + 1;
-          const transient = error instanceof Error && /network|timeout|5\d\d/i.test(error.message);
-          if (retryCount < this.MAX_RETRIES && transient) {
+          const retryable = error instanceof SyncRetryableError;
+
+          if (retryable && retryCount < this.MAX_RETRIES) {
             remaining.push({
               ...task,
               retryCount,
               nextAttemptAt: Date.now() + Math.min(60_000, 2_000 * 2 ** (retryCount - 1)),
             });
-          } else if (retryCount < this.MAX_RETRIES) {
-            remaining.push({ ...task, retryCount });
           } else {
-            console.error("[PWA SYNC] task dropped after maximum retries", { id: task.id, type: task.type });
+            console.error("[PWA SYNC] task dropped", {
+              id: task.id,
+              type: task.type,
+              reason: error instanceof Error ? error.message : "unknown error",
+              retryCount,
+            });
           }
         }
       }
@@ -184,17 +203,32 @@ export class BackgroundSyncManager {
 
   private async executeTask(task: SyncTask): Promise<void> {
     const endpoint = taskEndpoint(task);
-    const response = await fetch(endpoint, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify(taskBody(task)),
-    });
+    const body = taskBody(task);
+    if (bodySizeBytes(body) > MAX_TASK_BODY_BYTES) {
+      throw new Error(`Sync task ${task.id} exceeds the 256 KB offline payload limit`);
+    }
 
-    if (!response.ok) {
-      const reason = response.status >= 500 ? `Server error ${response.status}` : `Request rejected ${response.status}`;
-      throw new Error(reason);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        if (response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500) {
+          throw new SyncRetryableError(`Retryable server error ${response.status}`);
+        }
+        throw new Error(`Request rejected ${response.status}`);
+      }
+    } catch (error) {
+      if (error instanceof SyncRetryableError) throw error;
+      if (error instanceof TypeError || (error instanceof Error && /network|timeout|failed to fetch/i.test(error.message))) {
+        throw new SyncRetryableError(error instanceof Error ? error.message : "Network request failed");
+      }
+      throw error;
     }
   }
 
@@ -227,6 +261,13 @@ export class BackgroundSyncManager {
   public clearQueue(): void {
     if (!isBrowser()) return;
     localStorage.removeItem(this.STORAGE_KEY);
+  }
+}
+
+class SyncRetryableError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "SyncRetryableError";
   }
 }
 
@@ -341,7 +382,7 @@ export class InstallPromptManager {
   public async prompt(): Promise<boolean> {
     if (!this.deferredPrompt) return false;
     const prompt = this.deferredPrompt;
-    prompt.prompt();
+    await prompt.prompt();
     const { outcome } = await prompt.userChoice;
     this.deferredPrompt = null;
     return outcome === "accepted";
