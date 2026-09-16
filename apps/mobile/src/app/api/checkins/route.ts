@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertTrainerOwnsClient } from "@/lib/authorization";
+import { sendPushToUser } from "@/lib/push-server";
 
 const userSummarySelect = { id: true, name: true, email: true, avatar: true, role: true } as const;
 const clientSummarySelect = { id: true, name: true, email: true, avatar: true, trainerId: true, userId: true, goal: true, status: true, plan: true } as const;
@@ -117,6 +118,14 @@ export async function POST(req: Request) {
     const owner = await prisma.client.findUnique({ where: { id: clientId }, select: { trainerId: true } });
     if (owner?.trainerId) {
       await prisma.notification.create({ data: { userId: owner.trainerId, title: `Nuevo check-in: ${s.name}`, body: body.comentario?.slice(0, 80) || "Check-in semanal recibido", type: "checkin", link: "/trainer/checkins" } }).catch(() => {});
+      void sendPushToUser({
+        userId: owner.trainerId,
+        type: "checkin_reminder",
+        title: `Nuevo check-in: ${s.name}`,
+        body: body.comentario?.slice(0, 100) || "Check-in semanal recibido",
+        url: "/trainer/checkins",
+        data: { checkinId: checkin.id, clientId },
+      }).catch((error) => console.error("[checkins] push trigger failed", error));
     }
   }
   return NextResponse.json(checkin, { status: 201 });
@@ -150,6 +159,14 @@ export async function PATCH(req: Request) {
     const clientUserId = updated.client?.userId || null;
     if (clientUserId && trainerReply) {
       await prisma.notification.create({ data: { userId: clientUserId, title: "Tu coach respondió tu check-in", body: trainerReply.slice(0, 80), type: "checkin_reply", link: "/client/checkins" } }).catch(() => {});
+      void sendPushToUser({
+        userId: clientUserId,
+        type: "coach_message",
+        title: "Tu coach respondió tu check-in",
+        body: trainerReply.slice(0, 100),
+        url: "/client/checkins",
+        data: { checkinId: updated.id },
+      }).catch((error) => console.error("[checkins] reply push trigger failed", error));
     }
     return NextResponse.json(updated);
   } catch (error: unknown) {
