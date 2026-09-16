@@ -9,7 +9,7 @@ export type PushNotificationType =
   | "program_update"
   | "payment_reminder";
 
-type PreferenceRow = {
+export type PushPreferenceSnapshot = {
   enabled: boolean;
   pushEnabled: boolean;
   workoutReminders: boolean;
@@ -23,7 +23,21 @@ type PreferenceRow = {
   quietEnd: string | null;
 };
 
-function preferenceAllows(type: PushNotificationType | undefined, prefs: PreferenceRow) {
+const defaultPreferences: PushPreferenceSnapshot = {
+  enabled: true,
+  pushEnabled: true,
+  workoutReminders: true,
+  nutritionTips: true,
+  progressUpdates: true,
+  checkinReminders: true,
+  messageNotifications: true,
+  paymentReminders: true,
+  timezone: "UTC",
+  quietStart: null,
+  quietEnd: null,
+};
+
+export function preferenceAllows(type: PushNotificationType | undefined, prefs: PushPreferenceSnapshot) {
   if (!prefs.enabled || !prefs.pushEnabled) return false;
   if (!type) return true;
   switch (type) {
@@ -53,7 +67,16 @@ function hourMinuteInTimeZone(timeZone: string, date = new Date()) {
   }
 }
 
-function isQuietHours(prefs: PreferenceRow, date = new Date()) {
+function parseTime(value: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+export function isQuietHours(prefs: PushPreferenceSnapshot, date = new Date()) {
   if (!prefs.quietStart || !prefs.quietEnd) return false;
   const start = parseTime(prefs.quietStart);
   const end = parseTime(prefs.quietEnd);
@@ -63,13 +86,28 @@ function isQuietHours(prefs: PreferenceRow, date = new Date()) {
   return start < end ? now >= start && now < end : now >= start || now < end;
 }
 
-function parseTime(value: string) {
-  const match = /^(\d{2}):(\d{2})$/.exec(value);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (hour > 23 || minute > 59) return null;
-  return hour * 60 + minute;
+export function canReceivePush(type: PushNotificationType | undefined, prefs: PushPreferenceSnapshot, date = new Date()) {
+  return preferenceAllows(type, prefs) && !isQuietHours(prefs, date);
+}
+
+export async function getPushPreferences(userId: string): Promise<PushPreferenceSnapshot> {
+  const prefs = await prisma.notificationPreference.findUnique({
+    where: { userId },
+    select: {
+      enabled: true,
+      pushEnabled: true,
+      workoutReminders: true,
+      nutritionTips: true,
+      progressUpdates: true,
+      checkinReminders: true,
+      messageNotifications: true,
+      paymentReminders: true,
+      timezone: true,
+      quietStart: true,
+      quietEnd: true,
+    },
+  });
+  return prefs ?? defaultPreferences;
 }
 
 export async function sendPushToUser(input: {
@@ -91,39 +129,10 @@ export async function sendPushToUser(input: {
       select: { endpoint: true, p256dh: true, auth: true },
       take: 20,
     }),
-    prisma.notificationPreference.findUnique({
-      where: { userId: input.userId },
-      select: {
-        enabled: true,
-        pushEnabled: true,
-        workoutReminders: true,
-        nutritionTips: true,
-        progressUpdates: true,
-        checkinReminders: true,
-        messageNotifications: true,
-        paymentReminders: true,
-        timezone: true,
-        quietStart: true,
-        quietEnd: true,
-      },
-    }),
+    getPushPreferences(input.userId),
   ]);
 
-  const effectivePrefs: PreferenceRow = prefs ?? {
-    enabled: true,
-    pushEnabled: true,
-    workoutReminders: true,
-    nutritionTips: true,
-    progressUpdates: true,
-    checkinReminders: true,
-    messageNotifications: true,
-    paymentReminders: true,
-    timezone: "UTC",
-    quietStart: null,
-    quietEnd: null,
-  };
-
-  if (!preferenceAllows(input.type, effectivePrefs) || isQuietHours(effectivePrefs)) {
+  if (!canReceivePush(input.type, prefs)) {
     return { sent: 0, failed: 0, skipped: subscriptions.length, reason: "preferences" as const };
   }
 
