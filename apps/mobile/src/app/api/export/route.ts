@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 const ALLOWED_TYPES = new Set(["workouts", "progress", "measurements", "checkins", "all"]);
 const ALLOWED_FORMATS = new Set(["json", "csv"]);
 const MAX_ROWS = 5000;
+const EXPORT_RATE_LIMIT = { max: 5, windowMs: 60 * 60_000 };
 
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -25,6 +27,24 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (session.role !== "CLIENT") return NextResponse.json({ error: "La exportación personal está disponible para atletas" }, { status: 403 });
+
+  const limit = await checkRateLimit(
+    getClientIp({ headers: request.headers, ip: (request as Request & { ip?: string }).ip }),
+    `export:${session.id}`,
+    EXPORT_RATE_LIMIT,
+  );
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: "Demasiadas exportaciones. Intentá nuevamente más tarde." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.max(1, Math.ceil(limit.resetMs / 1000))),
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
 
   try {
     const body = (await request.json().catch(() => null)) as { type?: unknown; format?: unknown } | null;
