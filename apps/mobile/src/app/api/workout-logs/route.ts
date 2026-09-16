@@ -53,10 +53,13 @@ export async function POST(req: Request) {
   const workoutId = body.workoutId || null;
   let workout: { id: string; name: string; week: { programId: string } } | null = null;
   if (workoutId) {
-    workout = await prisma.workout.findUnique({ where: { id: workoutId }, include: { week: { select: { programId: true } } } });
+    workout = await prisma.workout.findUnique({ where: { id: workoutId }, include: { week: { select: { programId: true, program: { select: { trainerId: true } } } } } });
     if (!workout) return NextResponse.json({ error: "El entrenamiento no existe" }, { status: 404 });
     if (s.role === "CLIENT" && workout.week.programId !== assignedProgramId) {
       return NextResponse.json({ error: "Ese entrenamiento no pertenece a tu programa asignado" }, { status: 403 });
+    }
+    if (s.role === "TRAINER" && workout.week.program.trainerId !== s.id) {
+      return NextResponse.json({ error: "Ese entrenamiento no pertenece a tu cartera" }, { status: 403 });
     }
   } else if (!importSource) {
     return NextResponse.json({ error: "Falta el ID del entrenamiento" }, { status: 400 });
@@ -73,6 +76,10 @@ export async function POST(req: Request) {
   }));
   const date = body.date ? new Date(body.date) : new Date();
   const workoutName = workout?.name || body.workoutName || `Importado desde ${importSource}`;
+
+  if (date.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+    return NextResponse.json({ error: "La fecha del entrenamiento no puede ser futura" }, { status: 400 });
+  }
 
   const log = await prisma.workoutLog.create({
     data: {
@@ -117,6 +124,8 @@ export async function GET(req: Request) {
     });
     return NextResponse.json(logs);
   }
+
+  if (s.role !== "TRAINER") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   if (targetClientId) {
     if (!(await assertTrainerOwnsClient(s.id, targetClientId))) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
