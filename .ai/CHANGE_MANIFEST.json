@@ -6,16 +6,21 @@
   "allowedPaths": [
     ".ai/**",
     ".github/**",
-    "scripts/ai-*.mjs",
+    "scripts/**",
     "package.json",
-    "apps/web/package.json"
+    "packages/**",
+    "apps/**",
+    "docs/**",
+    "README.md",
+    "*.md"
   ],
   "forbiddenPaths": [
     ".env",
     ".env.*",
     "**/node_modules/**",
     "**/dist/**",
-    "**/.next/**"
+    "**/.next/**",
+    "**/target/**"
   ],
   "requiredChecks": [
     "ai:audit:strict",
