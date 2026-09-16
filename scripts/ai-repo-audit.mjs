@@ -136,6 +136,13 @@ function collectWorkflows() {
   return fs.readdirSync(dir).filter((name) => /\.(yml|yaml)$/.test(name)).sort();
 }
 
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1")
+    .replace(/^\s*#.*$/gm, "");
+}
+
 function grepSignals(files) {
   const signals = [];
   const patterns = [
@@ -153,8 +160,10 @@ function grepSignals(files) {
     if (!text) continue;
     const normalizedPath = `/${rel(file)}`;
     const highRisk = HIGH_RISK_DIRS.some((part) => normalizedPath.includes(part));
+    const codeOnly = stripComments(text);
     for (const pattern of patterns) {
-      const matches = text.match(pattern.re);
+      const source = ["dangerous eval", "shell interpolation", "fake"].includes(pattern.key) ? codeOnly : text;
+      const matches = source.match(pattern.re);
       if (matches?.length) signals.push({ file: rel(file), signal: pattern.key, count: matches.length, highRisk });
     }
   }
@@ -248,6 +257,7 @@ const snapshot = {
     "This audit is static evidence only; it does not prove provider, deployment, database, device, or production runtime behavior.",
     "Run repository quality gates after changes.",
     "Treat stale documentation as context, not proof.",
+    "Comment-only mentions do not create high-risk fake/eval/shell findings; source-code findings remain blocking.",
   ],
 };
 
