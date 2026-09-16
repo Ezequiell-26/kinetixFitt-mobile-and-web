@@ -90,7 +90,7 @@ export default async function PaymentsPage() {
                 </div>
                 <div className="text-right">
                   <Badge variant="success">{sub.status}</Badge>
-                  <p className="text-xs text-zinc-500 mt-1">Vence {new Date(sub.nextPayment).toLocaleDateString("es-AR")}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{sub.nextPayment ? `Vence ${new Date(sub.nextPayment).toLocaleDateString("es-AR")}` : "Sin fecha de vencimiento"}</p>
                 </div>
               </div>
             ))
