@@ -9,6 +9,10 @@ dist/
 build/
 out/
 
+# Generated native platform projects
+apps/mobile/android/
+apps/mobile/ios/
+
 # Environment variables
 .env
 .env.*
