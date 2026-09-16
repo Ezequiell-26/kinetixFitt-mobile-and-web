@@ -26,6 +26,7 @@ The repository now contains a persistent operating layer intended to prevent reg
 - `scripts/ai-repo-audit.mjs` — dependency-free static repository inventory and risk-signal audit.
 - `npm run ai:audit` / `ai:audit:json` / `ai:audit:strict` — repeatable audit commands.
 - CI executes the strict static audit before dependency installation and the normal quality gates.
+- `.github/agents/manifest.json` + `.github/skills/agent-orchestration/SKILL.md` define specialized agent routing and safe improvement loops.
 
 This layer provides static evidence and guardrails. It does NOT by itself prove production runtime behavior, external-provider delivery, store approval, or device behavior.
 
@@ -165,45 +166,39 @@ Payment, authorization, secret-management, and deployment failures are release b
 ## 12. 2026-09-16 change record
 
 ### Previously merged
-- `/client/tools` category navigation now synchronizes its `?cat=` URL state with browser back/forward and shared category links.
-- Web Push activation in `PushCenter` now obtains the VAPID public key, registers the Service Worker subscription, and persists the subscription through `/api/push/subscribe`.
+- `/client/tools` category navigation synchronizes its `?cat=` URL state with browser back/forward and shared category links.
+- Web Push activation in `PushCenter` obtains the VAPID public key, registers the Service Worker subscription, and persists the subscription through `/api/push/subscribe`.
 - `/api/push/public-key` exposes only the non-secret VAPID public key and returns `503` when push infrastructure is not configured.
 - The global mobile 404 experience follows the KinetixFitt visual system and keeps the primary recovery path accessible.
-- Those changes were merged to `main` in commit `663ef2c775523d38d2292c37855ab06a4d03a7ad`.
-- Vercel previously reported an external `build-rate-limit`; this must not be confused with a confirmed application build failure.
 
-### Current iteration
-- The Service Worker offline mutation queue now uses IndexedDB persistence for a bounded allowlist of same-origin API mutations, retains request bodies/headers needed for replay, registers Background Sync when available, and applies retry limits. This reduces the previous in-memory queue/data-loss risk.
-- The client offline outbox in `apps/mobile/src/lib/offline-sync.ts` now uses IndexedDB as its primary store, with migration from the legacy `localStorage` queue and a compatibility cache for synchronous callers.
-- Push notification preferences are now interactive in `PushCenter` rather than read-only UI controls. Workout, check-in and coach-message preferences are persisted through `/api/notification-preferences`.
-- `NotificationPreference` now has a dedicated `checkinReminders` field and the versioned migration `20260916200000_checkin_notification_preference` adds it with a safe `DEFAULT true`.
-- The notification-preferences API now exposes the persisted `enabled` state and maps `checkin_reminder` to the dedicated database field.
-- `KinetixFitt AI` provider configuration now distinguishes OpenAI and GLM-style deployments, refuses an incomplete GLM configuration instead of accidentally using a GLM key against the OpenAI default endpoint, bounds output tokens, and explicitly marks database context as data rather than instructions.
-- AI client scoping remains protected by `assertTrainerOwnsClient()` before trainer access to client-specific context.
+### Current hardening pass
+- Service Worker mutation outbox uses persistent IndexedDB storage, bounded same-origin allowlisted API routes, preserved request bodies/headers and retry handling.
+- `apps/mobile/src/lib/offline-sync.ts` uses IndexedDB as the primary client outbox with legacy `localStorage` migration.
+- Notification preferences persist global enablement and a dedicated `checkinReminders` flag via a versioned Prisma migration.
+- Push sending now reads the same `PushSubscription` persistence layer as registration, instead of a separate guessed Supabase table, and filters recipients against `NotificationPreference` before delivery.
+- Push sender accepts a typed notification category so automated triggers can respect per-category preferences.
+- KinetixFitt AI provider configuration distinguishes OpenAI and GLM-style deployments and rejects incomplete GLM configuration rather than sending a GLM key to the OpenAI default endpoint.
+- AI context handling explicitly marks database-derived context as data, while trainer client scoping remains protected by `assertTrainerOwnsClient()`.
+- Added `apps/mobile/tests/e2e/platform-smoke.spec.ts` covering public health boundaries, notification/push auth boundaries, unsigned webhook rejection and VAPID public-key exposure.
+- Refreshed `.ai/FEATURE_LEDGER.md` so notification/PWA/AI evidence and known gaps reflect current implementation rather than historical claims.
 
-### Verification status for this iteration
-- GitHub combined status for commit `e9aa20e17fc477bfcc3fb5cc09cf8d5f910b6314` returned no status entries.
-- GitHub workflow lookup for commit `e9aa20e17fc477bfcc3fb5cc09cf8d5f910b6314` returned no workflow runs.
-- Therefore this iteration is `UNVERIFIED_RUNTIME` / `PARTIAL` from an evidence perspective: code was updated on `main`, but build, typecheck, tests, migration application and live runtime verification were not executed through the available GitHub interface.
-- The next release gate is to run the repository's real typecheck/lint/unit/security/E2E gates, validate the new Prisma migration against the target PostgreSQL database, and perform a deployment/preview smoke test.
+### Verification status
+- No current GitHub status entries or workflow runs were available for the most recent code changes when checked through the GitHub interface.
+- Therefore this pass is `PARTIAL / E2_STATIC` from an evidence perspective: code changes are present on `main`, but a real CI/build/typecheck/test/migration/deployment/device run is still required before production claims.
+- The repository CI already contains automated gates for AI static auditing, typecheck, lint, Prisma migration/seed, unit tests, build, security HTTP tests, Playwright E2E and web build.
 
-## 13. Updating this document
+## 13. Remaining release blockers / external verification
 
-Update this document after material changes to:
-
-- architecture
-- database/schema
-- authentication/security
-- payment systems
-- storage
-- platforms
-- deployment
-- major product capabilities
-- AI governance or repository verification tooling
-- external integrations
-- performance baselines
-
-Use exact dates and verifiable statements.
+1. Execute the full CI gates on the latest `main` commit.
+2. Apply and validate all pending Prisma migrations against the target PostgreSQL environment.
+3. Run real Stripe and Mercado Pago checkout/webhook tests with sandbox credentials and public webhook URLs.
+4. Run real Web Push delivery on supported browsers/devices and validate preference enforcement.
+5. Validate offline workout/check-in flows through browser termination/restart and reconnect synchronization.
+6. Run Android, iOS and desktop packaging/smoke validation, including signing where required.
+7. Establish fresh performance budgets and measured baselines on representative devices/network profiles.
+8. Validate private asset upload/serve/delete lifecycle and cross-user access denial.
+9. Replace historical/documentary performance claims with current measured evidence.
+10. Record release evidence in the feature ledger before marking release-critical domains `COMPLETE`.
 
 ## 14. Principle
 
