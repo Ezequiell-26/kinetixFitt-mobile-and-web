@@ -184,7 +184,10 @@ function collectEnvNames(files) {
 function collectTrackedSecrets() {
   const output = git("ls-files", ["-z"]);
   if (!output) return [];
-  return output.split("\0").filter(Boolean).filter((file) => /(^|\/)(\.env($|\.)|.*\.(pem|key|p12|pfx)$)/i.test(file));
+  return output.split("\0")
+    .filter(Boolean)
+    .filter((file) => /(^|\/)(\.env($|\.)|.*\.(pem|key|p12|pfx)$)/i.test(file))
+    .filter((file) => !/(^|\/)\.env\.(example|sample|template)$/i.test(file));
 }
 
 function requiredChecks() {
@@ -258,6 +261,7 @@ const snapshot = {
     "Run repository quality gates after changes.",
     "Treat stale documentation as context, not proof.",
     "Comment-only mentions do not create high-risk fake/eval/shell findings; source-code findings remain blocking.",
+    "Tracked .env.example/.env.sample/.env.template files are configuration templates, not secret material, and are excluded from the tracked-secret blocker.",
   ],
 };
 
@@ -286,6 +290,9 @@ if (jsonOnly) {
     for (const item of signals.slice(0, 100)) console.log(`[${item.highRisk ? "HIGH" : "INFO"}] ${item.signal}: ${item.file} (${item.count})`);
     if (signals.length > 100) console.log(`... ${signals.length - 100} additional signals omitted from terminal output.`);
   }
+  console.log("\nBlocking findings");
+  if (!errors.length) console.log("[OK] No blocking findings.");
+  else for (const error of errors) console.log(`[BLOCK] ${error}`);
   console.log("\nResult");
   if (snapshot.strictPass) console.log("[PASS] Static AI guard passed. This is not runtime verification.");
   else console.log(`[BLOCK] ${errors.length} blocking finding(s). Fix or explicitly resolve before declaring the repository verified.`);
