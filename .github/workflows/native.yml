@@ -1,15 +1,16 @@
 name: Native
 
-# Builds nativos bajo demanda: EXE (Windows) + APK (Android) + DMG (Mac sin firmar).
-# Disparo: tag desktop-v* o manual (workflow_dispatch). Publica en el Release;
-# /descargar enlaza via /releases/latest/download/<archivo>.
-# iOS no esta aca: un .ipa instalable exige Mac + Apple Developer. En iPhone
-# se usa la PWA (Compartir, Anadir a pantalla de inicio), que ya funciona.
+# Build reproducible de escritorio y móvil.
+# Windows/macOS: Electron. Android/iOS: Capacitor generado en el runner.
+# Los proyectos nativos se generan desde la fuente para evitar drift accidental.
 
 on:
   push:
-    tags: ["desktop-v*"]
+    tags: ["desktop-v*", "native-v*"]
   workflow_dispatch:
+
+env:
+  CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL }}
 
 jobs:
   windows-exe:
@@ -24,16 +25,37 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Install arbol unico raiz
+      - name: Install repository
         run: npm ci
         working-directory: .
-      - name: Build EXE
-        run: npx --yes electron-builder -c electron/builder.json --win nsis --publish never
-      - name: Upload EXE
-        uses: actions/upload-artifact@v4
+      - name: Build Windows installer
+        run: npm run desktop:build:win
+      - uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: kinetixfitt-windows
           path: apps/mobile/dist-electron/*.exe
+
+  mac-dmg:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install repository
+        run: npm ci
+        working-directory: .
+      - name: Build macOS installer
+        run: npm run desktop:build:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinetixfitt-macos
+          path: apps/mobile/dist-electron/*.dmg
 
   android-apk:
     runs-on: ubuntu-latest
@@ -51,24 +73,27 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Install arbol unico raiz
+      - name: Validate mobile runtime URL
+        shell: bash
+        run: test -n "$CAPACITOR_SERVER_URL"
+      - name: Install repository
         run: npm ci
         working-directory: .
-      - name: Capacitor Android wrapper online
-        run: |
-          npx --yes @capacitor/cli add android
-      - name: Build APK debug
+      - name: Generate Android project
+        run: npx --yes @capacitor/cli add android
+      - name: Sync Capacitor Android
+        run: npx --yes @capacitor/cli sync android
+      - name: Build debug APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: kinetixfitt-android
           path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
 
-  mac-dmg:
+  ios-simulator:
     runs-on: macos-latest
     defaults:
       run:
@@ -80,19 +105,37 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Install arbol unico raiz
+      - name: Validate mobile runtime URL
+        shell: bash
+        run: test -n "$CAPACITOR_SERVER_URL"
+      - name: Install repository
         run: npm ci
         working-directory: .
-      - name: Build DMG sin firmar
-        run: npx --yes electron-builder -c electron/builder.json --mac dmg --publish never
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-dmg
-          path: apps/mobile/dist-electron/*.dmg
+      - name: Generate iOS project
+        run: npx --yes @capacitor/cli add ios
+      - name: Sync Capacitor iOS
+        run: npx --yes @capacitor/cli sync ios
+      - name: Resolve iOS workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ios/App/App.xcworkspace/contents.xcworkspacedata
+      - name: Build iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
 
   release:
-    needs: [windows-exe, android-apk, mac-dmg]
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows-exe, mac-dmg, android-apk, ios-simulator]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,8 +144,7 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-      - name: Publicar Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          files: artifacts/**/*
           generate_release_notes: true
