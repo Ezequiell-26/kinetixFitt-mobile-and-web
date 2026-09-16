@@ -46,7 +46,6 @@ function isAuthorizedInternalRequest(request: NextRequest) {
 }
 
 const defaultPreferences: PushPreferenceSnapshot = {
-  enabled: true,
   pushEnabled: true,
   workoutReminders: true,
   nutritionTips: true,
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
       where: { userId: { in: userIdsToCheck } },
       select: {
         userId: true,
-        enabled: true,
         pushEnabled: true,
         workoutReminders: true,
         nutritionTips: true,
