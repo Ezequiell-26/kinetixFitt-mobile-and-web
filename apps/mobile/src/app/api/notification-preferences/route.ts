@@ -36,8 +36,7 @@ const DEFAULTS = {
   channels: { email: true, push: true, sms: false, whatsapp: false },
 };
 
-function preferencesPayload(prefs: {
-  enabled: boolean;
+type PreferenceRecord = {
   emailEnabled: boolean;
   pushEnabled: boolean;
   smsEnabled: boolean;
@@ -51,9 +50,11 @@ function preferencesPayload(prefs: {
   timezone: string;
   quietStart: string;
   quietEnd: string;
-}) {
+};
+
+function preferencesPayload(prefs: PreferenceRecord) {
   return {
-    enabled: prefs.enabled,
+    enabled: prefs.emailEnabled || prefs.pushEnabled || prefs.smsEnabled || prefs.whatsappEnabled,
     types: [
       prefs.workoutReminders && "workout_reminder",
       prefs.nutritionTips && "meal_reminder",
@@ -101,18 +102,17 @@ export async function POST(request: Request) {
   const types = data.types;
   const channels = data.channels;
   const schedule = data.schedule;
-  const enabled = data.enabled ?? true;
-  const pushEnabled = (channels?.push ?? true) && enabled;
+  const enabled = data.enabled ?? DEFAULTS.enabled;
+  const pushEnabled = (channels?.push ?? DEFAULTS.channels.push) && enabled;
 
   const prefs = await prisma.notificationPreference.upsert({
     where: { userId: session.id },
     create: {
       userId: session.id,
-      enabled,
-      emailEnabled: (channels?.email ?? true) && enabled,
+      emailEnabled: (channels?.email ?? DEFAULTS.channels.email) && enabled,
       pushEnabled,
-      smsEnabled: (channels?.sms ?? false) && enabled,
-      whatsappEnabled: (channels?.whatsapp ?? false) && enabled,
+      smsEnabled: (channels?.sms ?? DEFAULTS.channels.sms) && enabled,
+      whatsappEnabled: (channels?.whatsapp ?? DEFAULTS.channels.whatsapp) && enabled,
       workoutReminders: types ? types.includes("workout_reminder") : true,
       nutritionTips: types ? types.includes("meal_reminder") : true,
       checkinReminders: types ? types.includes("checkin_reminder") : true,
@@ -124,7 +124,6 @@ export async function POST(request: Request) {
       quietEnd: schedule?.startHour !== undefined ? `${String(schedule.startHour).padStart(2, "0")}:00` : "08:00",
     },
     update: {
-      enabled,
       emailEnabled: channels?.email !== undefined ? channels.email && enabled : undefined,
       pushEnabled: channels?.push !== undefined ? channels.push && enabled : undefined,
       smsEnabled: channels?.sms !== undefined ? channels.sms && enabled : undefined,
