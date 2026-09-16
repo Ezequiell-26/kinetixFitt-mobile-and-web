@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const API_ROOTS = [path.join(ROOT, 'apps', 'mobile', 'app', 'api'), path.join(ROOT, 'apps', 'web', 'app', 'api')];
+const API_ROOTS = [
+  path.join(ROOT, 'apps', 'mobile', 'src', 'app', 'api'),
+  path.join(ROOT, 'apps', 'web', 'app', 'api'),
+];
 const routeFiles = [];
 const issues = [];
 
@@ -15,6 +18,7 @@ function walk(dir) {
     else if (entry.name === 'route.ts' || entry.name === 'route.tsx') routeFiles.push(full);
   }
 }
+
 API_ROOTS.forEach(walk);
 
 for (const file of routeFiles) {
@@ -28,6 +32,7 @@ for (const file of routeFiles) {
   const hasExternalSignal = /fetch\(|axios|stripe|supabase|upstash|s3|nodemailer|web-push/i.test(src);
   const hasTryCatch = /\btry\s*\{/.test(src);
 
+  if (methods.length === 0) issues.push(`${rel}: route file exports no recognized HTTP method`);
   if (mutation && !hasZod) issues.push(`${rel}: mutating route has no obvious Zod validation`);
   if (mutation && !hasAuthSignal) issues.push(`${rel}: mutating route has no obvious authentication boundary`);
   if (hasExternalSignal && !hasTryCatch) issues.push(`${rel}: external/provider signal without obvious try/catch boundary`);
@@ -36,7 +41,7 @@ for (const file of routeFiles) {
 
 const report = {
   routeCount: routeFiles.length,
-  routes: routeFiles.map(f => path.relative(ROOT, f).replaceAll(path.sep, '/')),
+  routes: routeFiles.map(f => path.relative(ROOT, f).replaceAll(path.sep, '/')).sort(),
   issues,
   pass: issues.length === 0,
   note: 'This is a heuristic audit. It never replaces route-level tests or human/security review.'
