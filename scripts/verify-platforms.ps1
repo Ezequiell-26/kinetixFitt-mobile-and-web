@@ -4,18 +4,18 @@ param([ValidateSet("all","windows","macos","android","ios")][string]$Platform = 
 $ErrorActionPreference = "Stop"
 $root = (Get-Location).Path
 $mobile = Join-Path $root "apps/mobile"
-$errors = @()
-$warnings = @()
-$success = @()
+$script:errors = @()
+$script:warnings = @()
+$script:success = @()
 
-function Ok($m) { $success += $m; Write-Host "[OK] $m" -ForegroundColor Green }
-function Warn($m) { $warnings += $m; Write-Host "[WARN] $m" -ForegroundColor Yellow }
-function Fail($m) { $errors += $m; Write-Host "[FAIL] $m" -ForegroundColor Red }
+function Ok($m) { $script:success += $m; Write-Host "[OK] $m" -ForegroundColor Green }
+function Warn($m) { $script:warnings += $m; Write-Host "[WARN] $m" -ForegroundColor Yellow }
+function Fail($m) { $script:errors += $m; Write-Host "[FAIL] $m" -ForegroundColor Red }
 function Exists($p,$label) { if (Test-Path $p) { Ok $label; return $true } Fail "$label — falta $p"; return $false }
 
 Write-Host "`n=== KINETIXFITT MULTIPLATFORM ===`nPlatform: $Platform`n" -ForegroundColor Cyan
 
-# Shared web/PWA baseline
+# Shared application/native configuration
 Exists (Join-Path $mobile "capacitor.config.ts") "Capacitor config"
 Exists (Join-Path $mobile "public/manifest.json") "PWA manifest"
 Exists (Join-Path $mobile "public/sw.js") "Service worker"
@@ -32,8 +32,9 @@ if ($pkg.dependencies.'@capacitor/android') { Ok "Capacitor Android dependency d
 if ($Platform -in @("all","windows","macos")) {
   if ($pkg.scripts.'desktop:build:win') { Ok "Windows desktop build script" } else { Fail "Windows desktop build script missing" }
   if ($pkg.scripts.'desktop:build:mac') { Ok "macOS desktop build script" } else { Fail "macOS desktop build script missing" }
-  if ((Test-Path (Join-Path $mobile "electron/builder.json"))) {
-    $builder = Get-Content (Join-Path $mobile "electron/builder.json") -Raw | ConvertFrom-Json
+  $builderPath = Join-Path $mobile "electron/builder.json"
+  if (Test-Path $builderPath) {
+    $builder = Get-Content $builderPath -Raw | ConvertFrom-Json
     if ($builder.win.target -contains "nsis") { Ok "Windows NSIS target" } else { Fail "Windows NSIS target missing" }
     if ($builder.mac.target -contains "dmg") { Ok "macOS DMG target" } else { Fail "macOS DMG target missing" }
   }
@@ -52,15 +53,14 @@ if ($Platform -in @("all","android","ios")) {
   }
 }
 
-# Shared script/runtime verification from the correct repository paths.
+# Local runtime prerequisites only; CI performs the actual platform builds.
 if (Get-Command node -ErrorAction SilentlyContinue) { Ok "Node.js available" } else { Fail "Node.js unavailable" }
 if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing — run npm ci" }
 
 Write-Host "`n--- SUMMARY ---" -ForegroundColor Cyan
-Write-Host "Success: $($success.Count)" -ForegroundColor Green
-Write-Host "Warnings: $($warnings.Count)" -ForegroundColor Yellow
-Write-Host "Errors: $($errors.Count)" -ForegroundColor Red
+Write-Host "Success: $($script:success.Count)" -ForegroundColor Green
+Write-Host "Warnings: $($script:warnings.Count)" -ForegroundColor Yellow
+Write-Host "Errors: $($script:errors.Count)" -ForegroundColor Red
 
-if ($errors.Count -gt 0) { exit 2 }
-if ($warnings.Count -gt 0) { exit 0 }
+if ($script:errors.Count -gt 0) { exit 2 }
 exit 0
