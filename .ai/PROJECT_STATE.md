@@ -18,43 +18,52 @@ The repository contains `apps/mobile` and `apps/web` with explicit roles. Curren
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
-## 4. 2026-09-17 deep audit fixes on `main`
+## 4. 2026-09-17 hardening on `main`
 
 ### PWA / offline
-- Removed stale PWA manifest references to screenshot assets that do not exist in the repository.
+- PWA manifest no longer references screenshot assets absent from the repository.
 - Service Worker no longer caches `/api/*` responses or authenticated dashboard navigations.
-- Service Worker offline mutation paths now match real API routes (`/api/workout-logs`, `/api/checkins`, `/api/measurements`, `/api/progress-photos`).
-- Service Worker outbox now uses its own IndexedDB database (`kinetixfitt-sw-outbox`) so it cannot collide with the client-side `kinetixfitt-offline` schema.
-- Service Worker continues to use bounded retries and drops non-retryable client errors.
+- Service Worker offline mutation paths match real APIs (`/api/workout-logs`, `/api/checkins`, `/api/measurements`, `/api/progress-photos`).
+- Service Worker outbox uses a dedicated IndexedDB database (`kinetixfitt-sw-outbox`) separate from client offline sync.
+- Retry limits and non-retryable HTTP handling are bounded.
 
 ### Cross-app development
-- `apps/web` development now uses port `3002` while `apps/mobile` remains on `3001`, preventing root `npm run dev` from launching two servers on the same port.
+- `apps/web` development uses port `3002`; `apps/mobile` remains on `3001`, preventing root development port collision.
 
 ### Measurements / data integrity
-- `/api/measurements` now validates request payloads with strict Zod schemas and numeric bounds.
-- Client measurement writes resolve the authenticated client server-side.
-- Trainer measurement writes require and verify trainer ownership of the target client.
-- Measurement reads are scoped to the current client or assigned trainer relationship.
-- Weight updates no longer use a silent error path.
+- `/api/measurements` uses strict Zod validation and numeric bounds.
+- Client writes resolve the authenticated client server-side.
+- Trainer writes require trainer ownership of the target client.
+- Reads are scoped to the authenticated client/trainer relationship.
+
+### Payments / webhook trust
+- Payment checkout already uses provider-specific idempotency and local payment records.
+- Stripe and Mercado Pago webhook events remain atomically claimed and provider-signed.
+- Webhook settlement now requires an explicit KinetixFitt `paymentId`; it no longer falls back to an arbitrary pending payment for a client.
+- Webhook settlement validates provider amount and currency against the stored payment before changing payment state.
+
+### CI / AI guard
+- Static AI repository guard was refined so comment-only mentions such as a honeypot's "falso" response do not become blocking fake-code findings.
+- A fresh GitHub Actions CI run is now triggered from `main` after this fix; final executable outcome must be rechecked before calling CI green.
 
 ### Multiplatform
 - Windows: Electron NSIS target + CI.
 - macOS: Electron DMG target + CI.
 - Android: Capacitor generation/sync + debug APK workflow + separate signed AAB workflow.
-- iOS: Capacitor generation/sync on macOS + iOS Simulator `.app` artifact.
+- iOS: Capacitor generation/sync on macOS + iOS Simulator artifact workflow.
 - Electron uses sandboxed renderer, context isolation, disabled Node integration and same-origin navigation checks.
 - Native projects remain generated rather than committed to avoid platform drift.
-- Platform verifier now checks the actual monorepo layout, dependency locations and manifest asset references.
+- Platform verifier checks monorepo layout, dependency locations and manifest asset references.
 
 ## 5. Verification state
 
-Source/configuration has been deeply inspected through GitHub, including PWA, offline sync, multiplatform workflows, Electron packaging, Capacitor configuration, measurements, payments, dependencies, manifests, navigation references and high-risk security patterns.
+Source/configuration has been deeply inspected through GitHub. The repository cannot yet be declared fully production-ready from source inspection alone. Runtime/device/provider evidence is still required.
 
-The final repository state is still **PARTIAL / E2_STATIC** from an evidence perspective. This session cannot truthfully claim a successful full TypeScript/build/test run because the environment could not clone the complete repository for local execution. Vercel checks are currently failing with a `build-rate-limit` target, and direct Vercel inspection returns permission denied. GitHub branch protection is not enabled.
+The CI run for commit `338f552a...` failed at the static AI guard because of a comment-only false positive in the registration honeypot. That guard has since been corrected in commit `2de192f2468b61fab38cca3bfde255f997b5e1d4`, which has its own CI run in progress.
 
 ## 6. Remaining release blockers
 
-1. Fresh CI result for the latest `main` commit.
+1. Green CI result for the latest `main` commit.
 2. Real PostgreSQL migration validation against staging/production.
 3. Stripe and Mercado Pago sandbox checkout/webhook E2E with deployed callbacks.
 4. Real Web Push delivery and preference/quiet-hour runtime verification.
