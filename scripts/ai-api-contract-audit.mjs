@@ -5,9 +5,11 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const API_ROOTS = [
   path.join(ROOT, 'apps', 'mobile', 'src', 'app', 'api'),
+  path.join(ROOT, 'apps', 'web', 'src', 'app', 'api'),
   path.join(ROOT, 'apps', 'web', 'app', 'api'),
 ];
 const routeFiles = [];
+const missingRoots = [];
 const issues = [];
 
 function walk(dir) {
@@ -19,7 +21,10 @@ function walk(dir) {
   }
 }
 
-API_ROOTS.forEach(walk);
+for (const root of API_ROOTS) {
+  if (fs.existsSync(root)) walk(root);
+  else missingRoots.push(path.relative(ROOT, root).replaceAll(path.sep, '/'));
+}
 
 for (const file of routeFiles) {
   const rel = path.relative(ROOT, file).replaceAll(path.sep, '/');
@@ -39,9 +44,14 @@ for (const file of routeFiles) {
   if (hasAuthSignal && !hasOwnershipSignal && !/auth/i.test(rel)) issues.push(`${rel}: protected-looking route lacks an obvious ownership/authorization signal`);
 }
 
+if (routeFiles.length === 0) {
+  issues.push('No App Router API route files were discovered. Audit configuration/path may be broken.');
+}
+
 const report = {
   routeCount: routeFiles.length,
   routes: routeFiles.map(f => path.relative(ROOT, f).replaceAll(path.sep, '/')).sort(),
+  missingRoots,
   issues,
   pass: issues.length === 0,
   note: 'This is a heuristic audit. It never replaces route-level tests or human/security review.'
