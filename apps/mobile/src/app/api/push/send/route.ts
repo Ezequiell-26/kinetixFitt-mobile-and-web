@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { canReceivePush, getPushPreferences } from "@/lib/push-server";
 
 const notificationTypeSchema = z.enum([
   "workout_reminder",
@@ -43,28 +44,6 @@ function isAuthorizedInternalRequest(request: NextRequest) {
   return auth.startsWith("Bearer ") && safeSecretEqual(auth.slice(7), configured);
 }
 
-function preferenceAllows(type: z.infer<typeof notificationTypeSchema>, prefs: {
-  enabled: boolean;
-  pushEnabled: boolean;
-  workoutReminders: boolean;
-  nutritionTips: boolean;
-  progressUpdates: boolean;
-  checkinReminders: boolean;
-  messageNotifications: boolean;
-  paymentReminders: boolean;
-}) {
-  if (!prefs.enabled || !prefs.pushEnabled) return false;
-  switch (type) {
-    case "workout_reminder": return prefs.workoutReminders;
-    case "meal_reminder": return prefs.nutritionTips;
-    case "checkin_reminder": return prefs.checkinReminders;
-    case "achievement":
-    case "program_update": return prefs.progressUpdates;
-    case "coach_message": return prefs.messageNotifications;
-    case "payment_reminder": return prefs.paymentReminders;
-  }
-}
-
 export async function POST(request: NextRequest) {
   if (!isAuthorizedInternalRequest(request)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -81,7 +60,6 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
     const { userIds, userRole, type, title, body: messageBody, icon, badge, url, data, ttl } = parsed.data;
-
     const where = {
       active: true,
       ...(userIds?.length ? { userId: { in: userIds } } : {}),
@@ -90,12 +68,7 @@ export async function POST(request: NextRequest) {
 
     const subscriptions = await prisma.pushSubscription.findMany({
       where,
-      select: {
-        endpoint: true,
-        p256dh: true,
-        auth: true,
-        userId: true,
-      },
+      select: { endpoint: true, p256dh: true, auth: true, userId: true },
       take: 500,
     });
 
@@ -104,31 +77,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userIdsToCheck = [...new Set(subscriptions.map((subscription) => subscription.userId))];
-    const preferences = await prisma.notificationPreference.findMany({
-      where: { userId: { in: userIdsToCheck } },
-      select: {
-        userId: true,
-        enabled: true,
-        pushEnabled: true,
-        workoutReminders: true,
-        nutritionTips: true,
-        progressUpdates: true,
-        checkinReminders: true,
-        messageNotifications: true,
-        paymentReminders: true,
-      },
-    });
-    const preferenceMap = new Map(preferences.map((prefs) => [prefs.userId, prefs]));
-
-    const eligible = type
-      ? subscriptions.filter((subscription) => {
-          const prefs = preferenceMap.get(subscription.userId);
-          return prefs ? preferenceAllows(type, prefs) : true;
-        })
-      : subscriptions.filter((subscription) => {
-          const prefs = preferenceMap.get(subscription.userId);
-          return !prefs || (prefs.enabled && prefs.pushEnabled);
-        });
+    const preferences = await Promise.all(userIdsToCheck.map(async (userId) => [userId, await getPushPreferences(userId)] as const));
+    const preferenceMap = new Map(preferences);
+    const eligible = subscriptions.filter((subscription) => canReceivePush(type, preferenceMap.get(subscription.userId)!, new Date()));
 
     if (eligible.length === 0) {
       return NextResponse.json({ success: true, sent: 0, failed: 0, total: subscriptions.length, skipped: subscriptions.length });
@@ -152,10 +103,7 @@ export async function POST(request: NextRequest) {
         try {
           if (!subscription.p256dh || !subscription.auth) throw new Error("Subscription keys missing");
           await webPush.sendNotification(
-            {
-              endpoint: subscription.endpoint,
-              keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-            },
+            { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
             JSON.stringify(notificationPayload),
             { TTL: ttl },
           );
@@ -165,10 +113,7 @@ export async function POST(request: NextRequest) {
             ? Number((error as { statusCode?: unknown }).statusCode)
             : 0;
           if (statusCode === 404 || statusCode === 410) {
-            await prisma.pushSubscription.updateMany({
-              where: { endpoint: subscription.endpoint },
-              data: { active: false },
-            }).catch(() => undefined);
+            await prisma.pushSubscription.updateMany({ where: { endpoint: subscription.endpoint }, data: { active: false } }).catch(() => undefined);
           }
           console.error("[PUSH] subscription delivery failed", { statusCode });
           return { success: false };
