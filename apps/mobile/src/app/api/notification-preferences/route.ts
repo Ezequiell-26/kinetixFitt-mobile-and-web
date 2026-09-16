@@ -37,6 +37,7 @@ const DEFAULTS = {
 };
 
 function preferencesPayload(prefs: {
+  enabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;
   smsEnabled: boolean;
@@ -44,6 +45,7 @@ function preferencesPayload(prefs: {
   workoutReminders: boolean;
   nutritionTips: boolean;
   progressUpdates: boolean;
+  checkinReminders: boolean;
   messageNotifications: boolean;
   paymentReminders: boolean;
   timezone: string;
@@ -51,10 +53,11 @@ function preferencesPayload(prefs: {
   quietEnd: string;
 }) {
   return {
-    enabled: prefs.pushEnabled || prefs.emailEnabled || prefs.smsEnabled || prefs.whatsappEnabled,
+    enabled: prefs.enabled,
     types: [
       prefs.workoutReminders && "workout_reminder",
       prefs.nutritionTips && "meal_reminder",
+      prefs.checkinReminders && "checkin_reminder",
       prefs.progressUpdates && "achievement",
       prefs.messageNotifications && "coach_message",
       prefs.paymentReminders && "payment_reminder",
@@ -105,12 +108,14 @@ export async function POST(request: Request) {
     where: { userId: session.id },
     create: {
       userId: session.id,
+      enabled,
       emailEnabled: (channels?.email ?? true) && enabled,
       pushEnabled,
       smsEnabled: (channels?.sms ?? false) && enabled,
       whatsappEnabled: (channels?.whatsapp ?? false) && enabled,
       workoutReminders: types ? types.includes("workout_reminder") : true,
       nutritionTips: types ? types.includes("meal_reminder") : true,
+      checkinReminders: types ? types.includes("checkin_reminder") : true,
       progressUpdates: types ? types.includes("achievement") || types.includes("program_update") : true,
       messageNotifications: types ? types.includes("coach_message") : true,
       paymentReminders: types ? types.includes("payment_reminder") : true,
@@ -119,12 +124,14 @@ export async function POST(request: Request) {
       quietEnd: schedule?.startHour !== undefined ? `${String(schedule.startHour).padStart(2, "0")}:00` : "08:00",
     },
     update: {
+      enabled,
       emailEnabled: channels?.email !== undefined ? channels.email && enabled : undefined,
       pushEnabled: channels?.push !== undefined ? channels.push && enabled : undefined,
       smsEnabled: channels?.sms !== undefined ? channels.sms && enabled : undefined,
       whatsappEnabled: channels?.whatsapp !== undefined ? channels.whatsapp && enabled : undefined,
       workoutReminders: types ? types.includes("workout_reminder") : undefined,
       nutritionTips: types ? types.includes("meal_reminder") : undefined,
+      checkinReminders: types ? types.includes("checkin_reminder") : undefined,
       progressUpdates: types ? types.includes("achievement") || types.includes("program_update") : undefined,
       messageNotifications: types ? types.includes("coach_message") : undefined,
       paymentReminders: types ? types.includes("payment_reminder") : undefined,
