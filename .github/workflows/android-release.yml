@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL }}
+
 jobs:
   android-aab:
     runs-on: ubuntu-latest
@@ -31,6 +34,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Validate runtime URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CAPACITOR_SERVER_URL" || { echo "Missing repository variable CAPACITOR_SERVER_URL"; exit 1; }
+          case "$CAPACITOR_SERVER_URL" in
+            https://*) ;;
+            *) echo "CAPACITOR_SERVER_URL must use HTTPS"; exit 1 ;;
+          esac
 
       - name: Validate signing secrets
         shell: bash
@@ -55,6 +68,10 @@ jobs:
         working-directory: apps/mobile
         run: npx --yes @capacitor/cli add android
 
+      - name: Sync Capacitor Android
+        working-directory: apps/mobile
+        run: npx --yes @capacitor/cli sync android
+
       - name: Configure production signing
         working-directory: apps/mobile
         env:
@@ -76,9 +93,6 @@ jobs:
           if "signingConfig signingConfigs.release" not in text:
               text = text.replace("buildTypes {", "buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }\n        ", 1)
           path.write_text(text)
-          gradle = Path("android/gradle.properties")
-          with gradle.open("a") as f:
-              f.write("\nANDROID_KEYSTORE_FILE=" + os.environ["STORE_FILE"] + "\n")
           PY
           cp "$GITHUB_WORKSPACE/${ANDROID_KEYSTORE_FILE}" android/app/keystore.jks
 
