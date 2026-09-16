@@ -1,0 +1,12 @@
+{
+  "name": "@kinetixfitt/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lightweight KINETIXFITT desktop shell powered by Tauri.",
+  "scripts": {
+    "dev": "npx --yes @tauri-apps/cli@2.11.4 dev",
+    "build": "npx --yes @tauri-apps/cli@2.11.4 build",
+    "build:win": "npx --yes @tauri-apps/cli@2.11.4 build --bundles nsis",
+    "build:mac": "npx --yes @tauri-apps/cli@2.11.4 build --bundles dmg"
+  }
+}
