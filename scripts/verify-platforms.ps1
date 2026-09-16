@@ -25,9 +25,10 @@ Exists (Join-Path $mobile "electron/main.js") "Electron main process"
 Exists (Join-Path $mobile "electron/builder.json") "Electron builder config"
 
 $pkg = Get-Content (Join-Path $mobile "package.json") -Raw | ConvertFrom-Json
-if ($pkg.dependencies.electron) { Ok "Electron dependency declared" } else { Fail "Electron dependency missing" }
-if ($pkg.dependencies.'@capacitor/core') { Ok "Capacitor dependency declared" } else { Fail "Capacitor dependency missing" }
-if ($pkg.dependencies.'@capacitor/android') { Ok "Capacitor Android dependency declared" } else { Fail "Capacitor Android dependency missing" }
+$electronVersion = if ($pkg.devDependencies.electron) { $pkg.devDependencies.electron } else { $pkg.dependencies.electron }
+if ($electronVersion) { Ok "Electron dependency declared" } else { Fail "Electron dependency missing" }
+if ($pkg.dependencies.'@capacitor/core' -or $pkg.devDependencies.'@capacitor/core') { Ok "Capacitor core dependency declared" } else { Fail "Capacitor core dependency missing" }
+if ($pkg.dependencies.'@capacitor/android' -or $pkg.devDependencies.'@capacitor/android') { Ok "Capacitor Android dependency declared" } else { Fail "Capacitor Android dependency missing" }
 
 if ($Platform -in @("all","windows","macos")) {
   if ($pkg.scripts.'desktop:build:win') { Ok "Windows desktop build script" } else { Fail "Windows desktop build script missing" }
@@ -49,11 +50,23 @@ if ($Platform -in @("all","android","ios")) {
   elseif ($Platform -eq "ios") { Warn "iOS project is generated reproducibly on macOS CI/local; it is not committed in the repository" }
   if ($Platform -eq "all") {
     if (Test-Path (Join-Path $mobile "android")) { Ok "Android project present" } else { Warn "Android project generated in CI/local rather than committed" }
-    if (Test-Path (Join-Path $mobile "ios")) { Ok "iOS project present" } else { Warn "iOS project generated on macOS CI/local rather than committed" }
+    if (Test-Path (Join-Path $mobile "ios")) { Ok "iOS project present" } else { Warn "iOS project generated in macOS CI/local rather than committed" }
   }
 }
 
-# Local runtime prerequisites only; CI performs the actual platform builds.
+# Static manifest integrity checks for referenced local assets.
+$manifestPath = Join-Path $mobile "public/manifest.json"
+if (Test-Path $manifestPath) {
+  $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+  foreach ($icon in @($manifest.icons)) {
+    if ($icon.src -and $icon.src.StartsWith("/")) {
+      $asset = Join-Path $mobile ("public" + $icon.src.Replace("/", "\\"))
+      Exists $asset ("Manifest asset " + $icon.src)
+    }
+  }
+}
+
+# Local runtime prerequisites only; CI performs actual platform builds.
 if (Get-Command node -ErrorAction SilentlyContinue) { Ok "Node.js available" } else { Fail "Node.js unavailable" }
 if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing — run npm ci" }
 
