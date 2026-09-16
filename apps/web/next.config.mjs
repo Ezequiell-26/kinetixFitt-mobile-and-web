@@ -1,16 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: false },
+  typescript: { ignoreBuildErrors: false },
   images: {
     domains: ['images.unsplash.com', 'kinetixfit.s3.amazonaws.com'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'kinetixfit.s3.amazonaws.com',
       },
     ],
-    unoptimized: process.env.NODE_ENV === 'production',
+    unoptimized: false,
   },
   transpilePackages: ['@kinetix/shared'],
   output: 'standalone',
