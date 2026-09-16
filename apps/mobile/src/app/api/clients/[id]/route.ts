@@ -131,6 +131,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         },
       }).catch(() => {});
     }
+
+    if (s.role === "CLIENT") {
+      const { trainerNotes: _trainerNotes, ...safeUpdated } = updated;
+      return NextResponse.json(safeUpdated);
+    }
     return NextResponse.json(updated);
   } catch (error: unknown) {
     console.error("[CLIENT PATCH]", error);
