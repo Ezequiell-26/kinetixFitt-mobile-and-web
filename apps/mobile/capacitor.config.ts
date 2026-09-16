@@ -3,15 +3,16 @@ import { CapacitorConfig } from "@capacitor/cli";
 /**
  * Capacitor — KINETIXFITT móvil (Android/iOS).
  *
- * La app nativa es un wrapper online contra la app móvil desplegada. La URL
- * se inyecta en build para evitar depender de un preview de Vercel hardcodeado.
+ * Los builds nativos son wrappers online contra la app móvil desplegada.
+ * El webDir contiene únicamente un shell mínimo para evitar empaquetar
+ * imágenes, audio y vídeos de ejercicios dentro del APK/IPA.
  */
 const serverUrl = process.env.CAPACITOR_SERVER_URL?.trim();
 
 const config: CapacitorConfig = {
   appId: "com.kinetixfitt.app",
   appName: "KINETIXFITT",
-  webDir: "public",
+  webDir: "native-shell",
   ...(serverUrl
     ? {
         server: {
