@@ -1,0 +1,18 @@
+[package]
+name = "kinetixfitt-desktop"
+version = "1.0.0"
+description = "Lightweight KINETIXFITT desktop shell"
+authors = ["KinetixFitt"]
+edition = "2021"
+rust-version = "1.77"
+build = "build.rs"
+
+[build-dependencies]
+tauri-build = "2.6.3"
+
+[dependencies]
+tauri = { version = "2.11.5", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
