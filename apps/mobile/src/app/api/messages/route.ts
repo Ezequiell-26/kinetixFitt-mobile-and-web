@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertTrainerOwnsClient } from "@/lib/authorization";
 import { sendPushToUser } from "@/lib/push-server";
+import { checkRateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limiter";
 
 const MAX_MESSAGE_LENGTH = 500;
 const userSummarySelect = { id: true, name: true, email: true, avatar: true, role: true } as const;
@@ -86,6 +87,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "No auth" }, { status: 401 });
+
+  const limit = await checkRateLimit(getClientIp(req), `messages:${s.id}`, RATE_LIMIT_PROFILES.messages);
+  if (!limit.success) {
+    return NextResponse.json({ error: "Demasiados mensajes, intentá de nuevo más tarde" }, {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil(limit.resetMs / 1000)) },
+    });
+  }
 
   const parsed = sendMessageSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Datos de mensaje inválidos" }, { status: 400 });
