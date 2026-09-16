@@ -1,7 +1,7 @@
 /* KINETIXFITT Service Worker — Workbox offline-first */
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.1.0/workbox-sw.js');
 
-const CACHE_VERSION = 'kinetixfitt-v5-workbox';
+const CACHE_VERSION = 'kinetixfitt-v6-workbox';
 const OFFLINE_URL = '/offline.html';
 
 if (self.workbox) {
@@ -18,23 +18,18 @@ if (self.workbox) {
   workbox.core.clientsClaim();
 
   workbox.precaching.precacheAndRoute([
-    { url: '/', revision: 'v5' },
-    { url: '/login', revision: 'v5' },
-    { url: '/offline.html', revision: 'v5' },
-    { url: '/manifest.json', revision: 'v5' },
-    { url: '/client/dashboard', revision: 'v5' },
-    { url: '/client/workout', revision: 'v5' },
-    { url: '/client/progress', revision: 'v5' },
-    { url: '/client/nutrition', revision: 'v5' },
-    { url: '/icons/icon-192.png', revision: 'v5' },
-    { url: '/icons/icon-512.png', revision: 'v5' },
+    { url: '/', revision: 'v6' },
+    { url: '/login', revision: 'v6' },
+    { url: '/offline.html', revision: 'v6' },
+    { url: '/manifest.json', revision: 'v6' },
+    { url: '/icons/icon-192.png', revision: 'v6' },
+    { url: '/icons/icon-512.png', revision: 'v6' },
   ]);
 
-  workbox.precaching.installListener;
   workbox.precaching.cleanupOutdatedCaches();
 
   workbox.routing.registerRoute(
-    ({ url }) => url.pathname.startsWith('/exercises/'),
+    ({ url }) => url.pathname.startsWith('/exercises/') && url.origin === location.origin,
     new workbox.strategies.CacheFirst({
       cacheName: 'exercises-cache-' + CACHE_VERSION,
       plugins: [
@@ -51,6 +46,7 @@ if (self.workbox) {
   workbox.routing.registerRoute(
     ({ request, url }) =>
       request.destination === 'image' &&
+      url.origin === location.origin &&
       (url.pathname.includes('/exercises') || url.pathname.includes('/data/')),
     new workbox.strategies.CacheFirst({
       cacheName: 'exercises-images-' + CACHE_VERSION,
@@ -58,25 +54,18 @@ if (self.workbox) {
         new workbox.expiration.ExpirationPlugin({
           maxEntries: 100,
           maxAgeSeconds: 30 * 24 * 60 * 60,
+          purgeOnQuotaError: true,
         }),
         new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
       ],
     })
   );
 
+  // Never cache API responses: authenticated responses may contain private
+  // athlete/trainer data and can outlive a logout or account switch.
   workbox.routing.registerRoute(
-    ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/'),
-    new workbox.strategies.NetworkFirst({
-      cacheName: 'api-cache-' + CACHE_VERSION,
-      networkTimeoutSeconds: 3,
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 80,
-          maxAgeSeconds: 5 * 60,
-        }),
-        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
-      ],
-    })
+    ({ url }) => url.origin === location.origin && url.pathname.startsWith('/api/'),
+    new workbox.strategies.NetworkOnly()
   );
 
   workbox.routing.registerRoute(
@@ -89,22 +78,31 @@ if (self.workbox) {
       cacheName: 'static-assets-' + CACHE_VERSION,
       plugins: [
         new workbox.expiration.ExpirationPlugin({
-          maxEntries: 80,
+          maxEntries: 120,
           maxAgeSeconds: 7 * 24 * 60 * 60,
+          purgeOnQuotaError: true,
         }),
       ],
     })
   );
 
+  // Keep authenticated/private pages out of the cache. Offline UX is handled
+  // by the dedicated offline page plus persistent mutation queue.
   workbox.routing.registerRoute(
-    ({ request }) => request.mode === 'navigate',
+    ({ request, url }) =>
+      request.mode === 'navigate' &&
+      url.origin === location.origin &&
+      !url.pathname.startsWith('/client/') &&
+      !url.pathname.startsWith('/trainer/') &&
+      !url.pathname.startsWith('/admin/'),
     new workbox.strategies.NetworkFirst({
-      cacheName: 'pages-cache-' + CACHE_VERSION,
+      cacheName: 'public-pages-' + CACHE_VERSION,
       networkTimeoutSeconds: 3,
       plugins: [
         new workbox.expiration.ExpirationPlugin({
-          maxEntries: 30,
+          maxEntries: 20,
           maxAgeSeconds: 24 * 60 * 60,
+          purgeOnQuotaError: true,
         }),
       ],
     })
@@ -114,7 +112,7 @@ if (self.workbox) {
     if (event.request.destination === 'document' || event.request.mode === 'navigate') {
       const cached = await caches.match(OFFLINE_URL);
       if (cached) return cached;
-      return caches.match('/');
+      return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
     }
     return Response.error();
   });
@@ -127,6 +125,7 @@ if (self.workbox) {
         new workbox.expiration.ExpirationPlugin({
           maxEntries: 20,
           maxAgeSeconds: 365 * 24 * 60 * 60,
+          purgeOnQuotaError: true,
         }),
         new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
       ],
@@ -152,12 +151,14 @@ if (self.workbox) {
   });
 }
 
-// Persistent offline outbox. Only same-origin, known JSON mutations are queued.
-const OUTBOX_DB = 'kinetixfitt-offline';
+// Separate DB from the client offline-sync DB to avoid object-store version
+// collisions between the Service Worker and window context.
+const OUTBOX_DB = 'kinetixfitt-sw-outbox';
 const OUTBOX_STORE = 'mutations';
 const OUTBOX_VERSION = 1;
 const SYNC_TAG = 'sync-api-mutations';
 const MAX_RETRIES = 5;
+const MAX_ITEM_BYTES = 256 * 1024;
 
 function shouldQueueMutation(request) {
   const url = new URL(request.url);
@@ -167,8 +168,7 @@ function shouldQueueMutation(request) {
   const safePaths = [
     '/api/workout-logs',
     '/api/checkins',
-    '/api/progress',
-    '/api/progress-measurements',
+    '/api/measurements',
     '/api/progress-photos',
   ];
 
@@ -192,6 +192,11 @@ function openOutboxDb() {
 
 async function enqueueMutation(request) {
   const body = await request.clone().text();
+  const byteLength = typeof TextEncoder !== 'undefined'
+    ? new TextEncoder().encode(body).byteLength
+    : body.length;
+  if (byteLength > MAX_ITEM_BYTES) throw new Error('Offline mutation too large');
+
   const headers = {};
   for (const [key, value] of request.headers.entries()) {
     const normalized = key.toLowerCase();
@@ -337,12 +342,14 @@ self.addEventListener('sync', (event) => {
   if (event.tag === SYNC_TAG) event.waitUntil(flushOutbox());
 });
 
-self.addEventListener('online', () => {
-  flushOutbox().catch((error) => console.warn('[SW] Online flush failed:', error));
-});
-
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    data = { body: event.data?.text?.() ?? 'Nueva notificación' };
+  }
+
   const title = data.title ?? 'KINETIXFITT';
   const options = {
     body: data.body ?? 'Nueva notificación',
@@ -373,8 +380,8 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-  if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'NOTIFICATION_CLICKED') {
     const urlToOpen = event.data.url || '/client/dashboard';
     event.waitUntil(
       self.clients.matchAll({ type: 'window' }).then((clients) => {
