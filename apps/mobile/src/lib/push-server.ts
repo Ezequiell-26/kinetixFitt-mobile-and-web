@@ -10,7 +10,6 @@ export type PushNotificationType =
   | "payment_reminder";
 
 export type PushPreferenceSnapshot = {
-  enabled: boolean;
   pushEnabled: boolean;
   workoutReminders: boolean;
   nutritionTips: boolean;
@@ -24,7 +23,6 @@ export type PushPreferenceSnapshot = {
 };
 
 const defaultPreferences: PushPreferenceSnapshot = {
-  enabled: true,
   pushEnabled: true,
   workoutReminders: true,
   nutritionTips: true,
@@ -38,7 +36,7 @@ const defaultPreferences: PushPreferenceSnapshot = {
 };
 
 export function preferenceAllows(type: PushNotificationType | undefined, prefs: PushPreferenceSnapshot) {
-  if (!prefs.enabled || !prefs.pushEnabled) return false;
+  if (!prefs.pushEnabled) return false;
   if (!type) return true;
   switch (type) {
     case "workout_reminder": return prefs.workoutReminders;
@@ -94,7 +92,6 @@ export async function getPushPreferences(userId: string): Promise<PushPreference
   const prefs = await prisma.notificationPreference.findUnique({
     where: { userId },
     select: {
-      enabled: true,
       pushEnabled: true,
       workoutReminders: true,
       nutritionTips: true,
@@ -152,6 +149,7 @@ export async function sendPushToUser(input: {
 
   const results = await Promise.allSettled(subscriptions.map(async (subscription) => {
     try {
+      if (!subscription.p256dh || !subscription.auth) throw new Error("Subscription keys missing");
       await webPush.sendNotification(
         { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
         payload,
