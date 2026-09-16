@@ -1,7 +1,8 @@
 name: Native
 
-# Build reproducible de escritorio y móvil.
-# Windows/macOS: Electron. Android/iOS: Capacitor generado en el runner.
+# Builds reproducibles de escritorio y móvil.
+# Windows/macOS: Tauri (shell ligero, producción contra la URL HTTPS pública).
+# Android/iOS: Capacitor, también contra la URL HTTPS pública.
 # Los proyectos nativos se generan desde la fuente para evitar drift accidental.
 
 on:
@@ -15,9 +16,6 @@ env:
 jobs:
   windows-exe:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -25,21 +23,18 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install repository
         run: npm ci
-        working-directory: .
-      - name: Build Windows installer
+      - name: Build lightweight Windows installer
         run: npm run desktop:build:win
       - uses: actions/upload-artifact@v4
         with:
-          name: kinetixfitt-windows
-          path: apps/mobile/dist-electron/*.exe
+          name: kinetixfitt-windows-tauri
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
 
   mac-dmg:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -47,15 +42,15 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install repository
         run: npm ci
-        working-directory: .
-      - name: Build macOS installer
+      - name: Build lightweight macOS installer
         run: npm run desktop:build:mac
       - uses: actions/upload-artifact@v4
         with:
-          name: kinetixfitt-macos
-          path: apps/mobile/dist-electron/*.dmg
+          name: kinetixfitt-macos-tauri
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
 
   android-apk:
     runs-on: ubuntu-latest
@@ -105,6 +100,10 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
       - name: Validate mobile runtime URL
         shell: bash
         run: test -n "$CAPACITOR_SERVER_URL"
