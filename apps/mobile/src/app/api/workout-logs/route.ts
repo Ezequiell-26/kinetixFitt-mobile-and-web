@@ -51,9 +51,16 @@ export async function POST(req: Request) {
 
   const importSource = body.importSource && IMPORT_SOURCES.has(body.importSource) ? body.importSource : null;
   const workoutId = body.workoutId || null;
-  let workout: { id: string; name: string; week: { programId: string } } | null = null;
+  let workout: {
+    id: string;
+    name: string;
+    week: { programId: string; program: { trainerId: string | null } };
+  } | null = null;
   if (workoutId) {
-    workout = await prisma.workout.findUnique({ where: { id: workoutId }, include: { week: { select: { programId: true, program: { select: { trainerId: true } } } } } });
+    workout = await prisma.workout.findUnique({
+      where: { id: workoutId },
+      include: { week: { select: { programId: true, program: { select: { trainerId: true } } } } },
+    });
     if (!workout) return NextResponse.json({ error: "El entrenamiento no existe" }, { status: 404 });
     if (s.role === "CLIENT" && workout.week.programId !== assignedProgramId) {
       return NextResponse.json({ error: "Ese entrenamiento no pertenece a tu programa asignado" }, { status: 403 });
