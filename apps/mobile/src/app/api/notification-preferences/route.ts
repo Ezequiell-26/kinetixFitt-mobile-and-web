@@ -32,7 +32,7 @@ const preferencesSchema = z.object({
 const DEFAULTS = {
   enabled: true,
   types: typeSchema.options,
-  schedule: { startHour: 8, endHour: 21, timezone: "America/Argentina/Buenos_Aires" },
+  schedule: { startHour: 8, endHour: 22, timezone: "America/Argentina/Buenos_Aires" },
   channels: { email: true, push: true, sms: false, whatsapp: false },
 };
 
@@ -83,7 +83,7 @@ export async function GET() {
 
   const prefs = await prisma.notificationPreference.upsert({
     where: { userId: session.id },
-    create: { userId: session.id },
+    create: {},
     update: {},
   });
 
@@ -105,14 +105,34 @@ export async function POST(request: Request) {
   const enabled = data.enabled ?? DEFAULTS.enabled;
   const pushEnabled = (channels?.push ?? DEFAULTS.channels.push) && enabled;
 
+  const disabledChannels = {
+    emailEnabled: false,
+    pushEnabled: false,
+    smsEnabled: false,
+    whatsappEnabled: false,
+  };
+
+  const requestedChannels = {
+    emailEnabled: (channels?.email ?? DEFAULTS.channels.email) && enabled,
+    pushEnabled,
+    smsEnabled: (channels?.sms ?? DEFAULTS.channels.sms) && enabled,
+    whatsappEnabled: (channels?.whatsapp ?? DEFAULTS.channels.whatsapp) && enabled,
+  };
+
+  const channelUpdate = enabled
+    ? {
+        emailEnabled: channels?.email !== undefined ? requestedChannels.emailEnabled : undefined,
+        pushEnabled: channels?.push !== undefined ? requestedChannels.pushEnabled : undefined,
+        smsEnabled: channels?.sms !== undefined ? requestedChannels.smsEnabled : undefined,
+        whatsappEnabled: channels?.whatsapp !== undefined ? requestedChannels.whatsappEnabled : undefined,
+      }
+    : disabledChannels;
+
   const prefs = await prisma.notificationPreference.upsert({
     where: { userId: session.id },
     create: {
       userId: session.id,
-      emailEnabled: (channels?.email ?? DEFAULTS.channels.email) && enabled,
-      pushEnabled,
-      smsEnabled: (channels?.sms ?? DEFAULTS.channels.sms) && enabled,
-      whatsappEnabled: (channels?.whatsapp ?? DEFAULTS.channels.whatsapp) && enabled,
+      ...requestedChannels,
       workoutReminders: types ? types.includes("workout_reminder") : true,
       nutritionTips: types ? types.includes("meal_reminder") : true,
       checkinReminders: types ? types.includes("checkin_reminder") : true,
@@ -124,10 +144,7 @@ export async function POST(request: Request) {
       quietEnd: schedule?.startHour !== undefined ? `${String(schedule.startHour).padStart(2, "0")}:00` : "08:00",
     },
     update: {
-      emailEnabled: channels?.email !== undefined ? channels.email && enabled : undefined,
-      pushEnabled: channels?.push !== undefined ? channels.push && enabled : undefined,
-      smsEnabled: channels?.sms !== undefined ? channels.sms && enabled : undefined,
-      whatsappEnabled: channels?.whatsapp !== undefined ? channels.whatsapp && enabled : undefined,
+      ...channelUpdate,
       workoutReminders: types ? types.includes("workout_reminder") : undefined,
       nutritionTips: types ? types.includes("meal_reminder") : undefined,
       checkinReminders: types ? types.includes("checkin_reminder") : undefined,
