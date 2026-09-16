@@ -26,6 +26,11 @@ jobs:
       - name: Pin Next-compatible ESLint
         run: npm install --save-dev --save-exact eslint@8.57.1 eslint-config-next@14.2.5 --prefix apps/web
 
+      - name: Localize web ESLint config
+        run: |
+          cp .eslintrc.json apps/web/.eslintrc.json
+          rm .eslintrc.json
+
       - name: Verify web checks
         run: |
           npm ci --prefix apps/web
@@ -37,7 +42,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           rm -f .github/workflows/maintenance-web-eslint.yml
-          git add apps/web/package.json apps/web/package-lock.json .github/workflows/maintenance-web-eslint.yml
+          git add apps/web/package.json apps/web/package-lock.json apps/web/.eslintrc.json .eslintrc.json .github/workflows/maintenance-web-eslint.yml
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
