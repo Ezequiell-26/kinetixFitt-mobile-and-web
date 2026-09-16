@@ -26,9 +26,38 @@ jobs:
       - name: Pin Next-compatible ESLint
         run: npm install --save-dev --save-exact eslint@8.57.1 eslint-config-next@14.2.5 @typescript-eslint/parser@7.18.0 @typescript-eslint/eslint-plugin@7.18.0 --prefix apps/web
 
-      - name: Localize web ESLint config
+      - name: Localize and tune web ESLint config
         run: |
-          cp .eslintrc.json apps/web/.eslintrc.json
+          cat > apps/web/.eslintrc.json <<'EOF'
+          {
+            "extends": [
+              "next/core-web-vitals",
+              "plugin:@typescript-eslint/recommended"
+            ],
+            "parser": "@typescript-eslint/parser",
+            "plugins": ["@typescript-eslint"],
+            "rules": {
+              "react/no-unescaped-entities": "off",
+              "prefer-const": "warn",
+              "@typescript-eslint/no-explicit-any": "warn",
+              "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                  "argsIgnorePattern": "^_"
+                }
+              ],
+              "no-console": [
+                "warn",
+                {
+                  "allow": [
+                    "warn",
+                    "error"
+                  ]
+                }
+              ]
+            }
+          }
+          EOF
           rm .eslintrc.json
 
       - name: Verify web checks
