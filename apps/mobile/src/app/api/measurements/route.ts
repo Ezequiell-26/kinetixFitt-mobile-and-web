@@ -1,109 +1,116 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertTrainerOwnsClient } from "@/lib/authorization";
 
-export async function GET(req: Request){
+const measurementSchema = z.object({
+  clientId: z.string().cuid().optional(),
+  weight: z.coerce.number().finite().min(20).max(500).nullable().optional(),
+  chest: z.coerce.number().finite().min(20).max(300).nullable().optional(),
+  waist: z.coerce.number().finite().min(20).max(300).nullable().optional(),
+  arm: z.coerce.number().finite().min(5).max(100).nullable().optional(),
+  leg: z.coerce.number().finite().min(10).max(150).nullable().optional(),
+  bodyFat: z.coerce.number().finite().min(1).max(80).nullable().optional(),
+  date: z.string().datetime().optional(),
+}).strict();
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+export async function GET(req: Request) {
   const s = await getSession();
-  if(!s) return NextResponse.json({error:"No auth"},{status:401});
+  if (!s) return jsonError("No auth", 401);
 
   const url = new URL(req.url);
   const clientId = url.searchParams.get("clientId");
 
-  if(s.role === "CLIENT"){
+  if (s.role === "CLIENT") {
     const client = await prisma.client.findFirst({
-      where: { OR: [{userId: s.id}, {email: s.email}] }
+      where: { OR: [{ userId: s.id }, { email: s.email }] },
+      select: { id: true },
     });
+
     const measurements = await prisma.progressMeasurement.findMany({
       where: {
         OR: [
           { userId: s.id },
-          ...(client?.id ? [{ clientId: client.id }] : [])
-        ]
+          ...(client?.id ? [{ clientId: client.id }] : []),
+        ],
       },
       orderBy: { date: "desc" },
-      take: 50
+      take: 50,
     });
     return NextResponse.json(measurements);
   }
 
-  // Trainer
-  if(clientId){
-    // P0 Security: TRAINER solo puede ver mediciones de sus propios clientes
-    const ownsClient = await assertTrainerOwnsClient(s.id, clientId);
-    if(!ownsClient){
-      return NextResponse.json({error:"Cliente no encontrado"}, {status:404});
+  if (clientId) {
+    if (!(await assertTrainerOwnsClient(s.id, clientId))) {
+      return jsonError("Cliente no encontrado", 404);
     }
+
     const measurements = await prisma.progressMeasurement.findMany({
       where: { clientId },
       orderBy: { date: "desc" },
-      take: 50
+      take: 50,
     });
     return NextResponse.json(measurements);
   }
 
   const measurements = await prisma.progressMeasurement.findMany({
-    include: { client: true },
+    where: { client: { trainerId: s.id } },
     orderBy: { date: "desc" },
-    take: 50
+    take: 50,
   });
   return NextResponse.json(measurements);
 }
 
-function fin(v: unknown): number | null {
-  const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
-  return Number.isFinite(n) ? n : null;
-}
-
-export async function POST(req: Request){
+export async function POST(req: Request) {
   const s = await getSession();
-  if(!s) return NextResponse.json({error:"No auth"},{status:401});
+  if (!s) return jsonError("No auth", 401);
 
-  const body = await req.json().catch(() => null);
-  if(!body) return NextResponse.json({error:"Cuerpo requerido"},{status:400});
-  let clientId = body.clientId;
+  const parsed = measurementSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return jsonError("Datos de medición inválidos", 400);
 
-  if(s.role === "CLIENT"){
+  const body = parsed.data;
+  let clientId: string | null = null;
+
+  if (s.role === "CLIENT") {
     const client = await prisma.client.findFirst({
-      where: { OR: [{userId: s.id}, {email: s.email}] }
+      where: { OR: [{ userId: s.id }, { email: s.email }] },
+      select: { id: true },
     });
-    clientId = client?.id || null;
-  } else if(clientId && s.role === "TRAINER"){
-    // P0 Security: TRAINER solo puede crear mediciones para sus propios clientes
-    const ownsClient = await assertTrainerOwnsClient(s.id, clientId);
-    if(!ownsClient){
-      return NextResponse.json({error:"Cliente no encontrado"}, {status:404});
+    if (!client) return jsonError("Cliente no encontrado", 404);
+    clientId = client.id;
+  } else {
+    if (!body.clientId) return jsonError("Falta clientId", 400);
+    if (!(await assertTrainerOwnsClient(s.id, body.clientId))) {
+      return jsonError("Cliente no encontrado", 404);
     }
+    clientId = body.clientId;
   }
-
-  const weight = body.weight !== undefined && body.weight !== null ? fin(body.weight) : null;
-  const chest = body.chest !== undefined && body.chest !== null ? fin(body.chest) : null;
-  const waist = body.waist !== undefined && body.waist !== null ? fin(body.waist) : null;
-  const arm = body.arm !== undefined && body.arm !== null ? fin(body.arm) : null;
-  const leg = body.leg !== undefined && body.leg !== null ? fin(body.leg) : null;
-  const bodyFat = body.bodyFat !== undefined && body.bodyFat !== null ? fin(body.bodyFat) : null;
 
   const measurement = await prisma.progressMeasurement.create({
     data: {
       userId: s.id,
       clientId,
-      weight,
-      chest,
-      waist,
-      arm,
-      leg,
-      bodyFat,
-      date: body.date ? new Date(body.date) : new Date()
-    }
+      weight: body.weight ?? null,
+      chest: body.chest ?? null,
+      waist: body.waist ?? null,
+      arm: body.arm ?? null,
+      leg: body.leg ?? null,
+      bodyFat: body.bodyFat ?? null,
+      date: body.date ? new Date(body.date) : new Date(),
+    },
   });
 
-  // Also update client's latest weight if available
-  if (clientId && weight) {
+  if (body.weight != null) {
     await prisma.client.update({
       where: { id: clientId },
-      data: { weight }
-    }).catch(()=>{});
+      data: { weight: body.weight },
+    });
   }
 
-  return NextResponse.json(measurement);
+  return NextResponse.json(measurement, { status: 201 });
 }
