@@ -18,12 +18,36 @@ export async function POST(request: NextRequest) {
   const { subscription } = parsed.data;
 
   try {
-    const saved = await prisma.pushSubscription.upsert({
+    const existing = await prisma.pushSubscription.findUnique({
       where: { endpoint: subscription.endpoint },
-      update: { userId: session.id, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth, active: true },
-      create: { userId: session.id, endpoint: subscription.endpoint, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth, active: true },
-      select: { id: true, endpoint: true },
+      select: { id: true, userId: true },
     });
+
+    if (existing && existing.userId !== session.id) {
+      return NextResponse.json({ error: "La suscripción push ya pertenece a otro usuario" }, { status: 409 });
+    }
+
+    const saved = existing
+      ? await prisma.pushSubscription.update({
+          where: { id: existing.id },
+          data: {
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
+            active: true,
+          },
+          select: { id: true, endpoint: true },
+        })
+      : await prisma.pushSubscription.create({
+          data: {
+            userId: session.id,
+            endpoint: subscription.endpoint,
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
+            active: true,
+          },
+          select: { id: true, endpoint: true },
+        });
+
     return NextResponse.json({ success: true, subscriptionId: saved.id, endpoint: saved.endpoint });
   } catch (error) {
     console.error("[PUSH SUBSCRIBE]", error);
@@ -34,7 +58,11 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId: session.id, active: true }, select: { id: true, endpoint: true, createdAt: true }, orderBy: { createdAt: "desc" } });
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId: session.id, active: true },
+    select: { id: true, endpoint: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
   return NextResponse.json({ success: true, subscriptions });
 }
 
