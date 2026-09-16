@@ -43,8 +43,13 @@
 
 - PWA manifest references only assets present in `apps/mobile/public/icons/`.
 - Service Worker does not cache private API responses or authenticated dashboard pages and uses a dedicated outbox database.
+- `apps/web/app/pwa-config.ts` now rejects unsafe/non-API offline endpoints, enforces a bounded queue and retries only recoverable failures.
+- The web TypeScript project now includes `app/pwa-config.ts` in verification instead of explicitly excluding it.
+- Obsolete `apps/web/app/page.tsx.new` was removed; the active landing entrypoint is `apps/web/app/page.tsx` → `components/landing-pro`.
 - Measurements API uses strict validation and server-side ownership resolution.
 - Payment webhook settlement is scoped to the exact local payment record and checks provider amount/currency before settlement.
+- Audit event IDs now use valid UUIDs so they satisfy `AuditEventSchema` instead of failing validation before persistence.
+- Web analytics client/server payloads are aligned (`event` + ISO `timestamp`), page-view initialization is browser-only, and workout completion metrics no longer assume exactly ten exercises.
 - AI repository guard no longer treats comment-only `fake`/`falso` wording as a blocking high-risk finding; actual source-code findings remain blocking.
 - `apps/web` development uses port 3002 while `apps/mobile` uses 3001.
 - Windows/macOS now use Tauri as the primary desktop shell; Electron remains an explicit fallback.
@@ -53,4 +58,4 @@
 
 ## Verification caveat
 
-Current source/configuration is still `E2_STATIC` until the latest GitHub Actions run becomes green and provider/device/deployment checks are executed. Do not mark affected domains complete merely because code paths exist.
+Current source/configuration is still `E2_STATIC` until the latest GitHub Actions run becomes green and provider/device/deployment checks are executed. The most recent CI run for the analytics fix was still pending at the time of this audit. Vercel status checks are currently failing with a `build-rate-limit` target, so deployment/build verification is externally constrained. Do not mark affected domains complete merely because code paths exist.
