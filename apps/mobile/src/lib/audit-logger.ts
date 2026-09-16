@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { useState, useEffect } from 'react';
 
 // Schema para eventos de auditoría
 const AuditEventSchema = z.object({
@@ -102,10 +103,11 @@ const auditLogStore: AuditEvent[] = [];
 const MAX_STORE_SIZE = 1000;
 
 /**
- * Generar ID único para evento de auditoría
+ * Generar ID UUID para evento de auditoría.
+ * crypto.randomUUID() evita colisiones previsibles y satisface el schema UUID.
  */
 function generateAuditId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return crypto.randomUUID();
 }
 
 /**
@@ -295,8 +297,6 @@ export function useAuditLogs(userId?: string) {
 }
 
 // Export para uso en componentes React
-import { useState, useEffect } from 'react';
-
 export default {
   logAuditEvent,
   getAuditLogs,
