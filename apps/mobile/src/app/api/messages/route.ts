@@ -7,6 +7,7 @@ import { sendPushToUser } from "@/lib/push-server";
 import { checkRateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limiter";
 
 const MAX_MESSAGE_LENGTH = 500;
+const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" } as const;
 const userSummarySelect = { id: true, name: true, email: true, avatar: true, role: true } as const;
 const messageResponseInclude = {
   sender: { select: userSummarySelect },
@@ -42,7 +43,7 @@ async function getTrainerForClient(clientId: string) {
 
 export async function GET(req: Request) {
   const s = await getSession();
-  if (!s) return NextResponse.json({ error: "No auth" }, { status: 401 });
+  if (!s) return NextResponse.json({ error: "No auth" }, { status: 401, headers: PRIVATE_HEADERS });
 
   const url = new URL(req.url);
   const withUserId = url.searchParams.get("with");
@@ -50,7 +51,7 @@ export async function GET(req: Request) {
   if (s.role === "CLIENT") {
     const client = await getClientForUser(s.id, s.email);
     const trainer = client?.trainerId ? await getTrainerForClient(client.id) : null;
-    if (!trainer) return NextResponse.json([]);
+    if (!trainer) return NextResponse.json([], { headers: PRIVATE_HEADERS });
     const msgs = await prisma.message.findMany({
       where: { OR: [{ senderId: s.id, receiverId: trainer.id }, { senderId: trainer.id, receiverId: s.id }] },
       orderBy: { createdAt: "asc" },
@@ -58,13 +59,13 @@ export async function GET(req: Request) {
       include: messageResponseInclude,
     });
     await prisma.message.updateMany({ where: { receiverId: s.id, senderId: trainer.id, read: false }, data: { read: true } });
-    return NextResponse.json(msgs);
+    return NextResponse.json(msgs, { headers: PRIVATE_HEADERS });
   }
 
   if (withUserId) {
     const clientUser = await prisma.client.findFirst({ where: { userId: withUserId }, select: { id: true } });
-    if (!clientUser) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
-    if (!(await assertTrainerOwnsClient(s.id, clientUser.id))) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+    if (!clientUser) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404, headers: PRIVATE_HEADERS });
+    if (!(await assertTrainerOwnsClient(s.id, clientUser.id))) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404, headers: PRIVATE_HEADERS });
     const msgs = await prisma.message.findMany({
       where: { OR: [{ senderId: s.id, receiverId: withUserId }, { senderId: withUserId, receiverId: s.id }] },
       orderBy: { createdAt: "asc" },
@@ -72,7 +73,7 @@ export async function GET(req: Request) {
       include: messageResponseInclude,
     });
     await prisma.message.updateMany({ where: { receiverId: s.id, senderId: withUserId, read: false }, data: { read: true } });
-    return NextResponse.json(msgs);
+    return NextResponse.json(msgs, { headers: PRIVATE_HEADERS });
   }
 
   const msgs = await prisma.message.findMany({
@@ -81,23 +82,23 @@ export async function GET(req: Request) {
     take: 50,
     include: messageResponseInclude,
   });
-  return NextResponse.json(msgs);
+  return NextResponse.json(msgs, { headers: PRIVATE_HEADERS });
 }
 
 export async function POST(req: Request) {
   const s = await getSession();
-  if (!s) return NextResponse.json({ error: "No auth" }, { status: 401 });
+  if (!s) return NextResponse.json({ error: "No auth" }, { status: 401, headers: PRIVATE_HEADERS });
 
   const limit = await checkRateLimit(getClientIp(req), `messages:${s.id}`, RATE_LIMIT_PROFILES.messages);
   if (!limit.success) {
     return NextResponse.json({ error: "Demasiados mensajes, intentá de nuevo más tarde" }, {
       status: 429,
-      headers: { "Retry-After": String(Math.ceil(limit.resetMs / 1000)) },
+      headers: { ...PRIVATE_HEADERS, "Retry-After": String(Math.ceil(limit.resetMs / 1000)) },
     });
   }
 
   const parsed = sendMessageSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Datos de mensaje inválidos" }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Datos de mensaje inválidos" }, { status: 400, headers: PRIVATE_HEADERS });
 
   const { content } = parsed.data;
   const receiverId = parsed.data.receiverId;
@@ -106,15 +107,15 @@ export async function POST(req: Request) {
 
   if (s.role === "CLIENT") {
     const client = await getClientForUser(s.id, s.email);
-    if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+    if (!client) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404, headers: PRIVATE_HEADERS });
     const trainer = client.trainerId ? await getTrainerForClient(client.id) : null;
-    if (!trainer || receiverId !== trainer.id) return NextResponse.json({ error: "Solo podés escribirle a tu coach asignado" }, { status: 403 });
+    if (!trainer || receiverId !== trainer.id) return NextResponse.json({ error: "Solo podés escribirle a tu coach asignado" }, { status: 403, headers: PRIVATE_HEADERS });
     clientId = client.id;
   } else {
-    if (!clientId) return NextResponse.json({ error: "Falta clientId" }, { status: 400 });
-    if (!(await assertTrainerOwnsClient(s.id, clientId))) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+    if (!clientId) return NextResponse.json({ error: "Falta clientId" }, { status: 400, headers: PRIVATE_HEADERS });
+    if (!(await assertTrainerOwnsClient(s.id, clientId))) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404, headers: PRIVATE_HEADERS });
     const client = await prisma.client.findUnique({ where: { id: clientId }, select: { userId: true } });
-    if (!client?.userId || receiverId !== client.userId) return NextResponse.json({ error: "Destinatario inválido" }, { status: 403 });
+    if (!client?.userId || receiverId !== client.userId) return NextResponse.json({ error: "Destinatario inválido" }, { status: 403, headers: PRIVATE_HEADERS });
   }
 
   const msg = await prisma.message.create({
@@ -130,6 +131,8 @@ export async function POST(req: Request) {
       type: "message",
       link: s.role === "TRAINER" ? "/client/messages" : "/trainer/messages",
     },
+  }).catch((error) => {
+    console.error("[messages] notification trigger failed", error);
   });
 
   void sendPushToUser({
@@ -141,5 +144,5 @@ export async function POST(req: Request) {
     data: { messageId: msg.id, clientId: clientId || undefined },
   }).catch((error) => console.error("[messages] push trigger failed", error));
 
-  return NextResponse.json(msg, { status: 201 });
+  return NextResponse.json(msg, { status: 201, headers: PRIVATE_HEADERS });
 }
