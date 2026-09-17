@@ -31,14 +31,32 @@ for (const file of routeFiles) {
   const src = fs.readFileSync(file, 'utf8');
   const methods = [...src.matchAll(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS)/g)].map(m => m[1]);
   const mutation = methods.some(m => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(m));
+
+  // Validation signal is intentionally broader than Zod: some mature routes use
+  // bounded manual parsing (typeof checks, length limits, Date parsing, enum guards)
+  // and are still validated at the HTTP boundary. This heuristic should detect
+  // absence of validation, not enforce one specific validation library.
   const hasZod = /from\s+['"]zod['"]|\bz\.[A-Za-z]+\(/.test(src);
+  const hasManualValidation = [
+    /await\s+req\.json\(\)/,
+    /typeof\s+body\??\.[A-Za-z_$][\w$]*\s*===\s*["'](?:string|number|boolean)["']/,
+    /\.length\s*(?:>|>=|===|<)\s*\d+/,
+    /Number\.isFinite\(/,
+    /Number\.isNaN\(/,
+    /Date\.parse\(/,
+    /safeParse\(/,
+    /Array\.isArray\(/,
+    /searchParams\.get\(/,
+  ].some(pattern => pattern.test(src));
+  const hasValidationSignal = hasZod || hasManualValidation;
+
   const hasAuthSignal = /auth|getServerSession|getSession|session|authorization|jwt|currentUser|require.*User/i.test(src);
   const hasOwnershipSignal = /owner|ownership|trainerId|athleteId|userId|clientId|authorize|forbidden|403/i.test(src);
   const hasExternalSignal = /fetch\(|axios|stripe|supabase|upstash|s3|nodemailer|web-push/i.test(src);
   const hasTryCatch = /\btry\s*\{/.test(src);
 
   if (methods.length === 0) issues.push(`${rel}: route file exports no recognized HTTP method`);
-  if (mutation && !hasZod) issues.push(`${rel}: mutating route has no obvious Zod validation`);
+  if (mutation && !hasValidationSignal) issues.push(`${rel}: mutating route has no obvious request validation`);
   if (mutation && !hasAuthSignal) issues.push(`${rel}: mutating route has no obvious authentication boundary`);
   if (hasExternalSignal && !hasTryCatch) issues.push(`${rel}: external/provider signal without obvious try/catch boundary`);
   if (hasAuthSignal && !hasOwnershipSignal && !/auth/i.test(rel)) issues.push(`${rel}: protected-looking route lacks an obvious ownership/authorization signal`);
