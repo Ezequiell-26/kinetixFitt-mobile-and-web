@@ -53,11 +53,11 @@ async function settlePayment(input: {
     where: { id: input.paymentId },
     select: { id: true, clientId: true, amount: true, currency: true, status: true },
   });
-  if (!payment) return { updated: false, reason: "payment_not_found" as const };
+  if (!payment) throw new Error(`Payment not found for signed webhook: ${input.paymentId}`);
 
   if (input.amount != null) {
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      return { updated: false, reason: "invalid_provider_amount" as const };
+      throw new Error(`Invalid provider amount for payment ${payment.id}`);
     }
     if (Math.abs(Number(payment.amount) - input.amount) > 0.01) {
       console.error("[WEBHOOK] payment amount mismatch", {
@@ -65,7 +65,7 @@ async function settlePayment(input: {
         expected: Number(payment.amount),
         received: input.amount,
       });
-      return { updated: false, reason: "amount_mismatch" as const };
+      throw new Error(`Payment amount mismatch for ${payment.id}`);
     }
   }
 
@@ -75,7 +75,7 @@ async function settlePayment(input: {
       expected: payment.currency,
       received: input.currency,
     });
-    return { updated: false, reason: "currency_mismatch" as const };
+    throw new Error(`Payment currency mismatch for ${payment.id}`);
   }
 
   const updated = await prisma.payment.updateMany({
