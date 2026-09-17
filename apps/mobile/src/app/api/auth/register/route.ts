@@ -29,40 +29,46 @@ export async function POST(req: Request) {
 
     const data = parsed.data;
     const normalizedEmail = data.email.toLowerCase().trim();
-
-    const exists = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (exists) return NextResponse.json({ error: "Email ya registrado" }, { status: 400 });
-
-    // Registro público SIEMPRE como CLIENTE.
     const hashed = await hashPassword(data.password);
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        password: hashed,
-        name: data.name.trim(),
-        role: "CLIENT",
-      },
-    });
-    await prisma.profile.create({ data: { userId: user.id } });
 
-    const existingClient = await prisma.client.findUnique({ where: { email: normalizedEmail } });
-    if (existingClient) {
-      await prisma.client.update({
-        where: { id: existingClient.id },
-        data: { userId: user.id, name: data.name.trim() || existingClient.name },
-      });
-    } else {
-      await prisma.client.create({
+    // User + Profile + Client deben crearse/reconciliarse como una sola unidad.
+    // Evita cuentas parciales si una FK, constraint o write posterior falla.
+    const user = await prisma.$transaction(async (tx) => {
+      const exists = await tx.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
+      if (exists) throw new Error("REGISTER_EMAIL_EXISTS");
+
+      // Registro público SIEMPRE como CLIENTE.
+      const createdUser = await tx.user.create({
         data: {
-          name: data.name.trim(),
           email: normalizedEmail,
-          userId: user.id,
-          goal: "HIPERTROFIA",
-          status: "ACTIVO",
-          plan: "PERSONALIZADO",
+          password: hashed,
+          name: data.name.trim(),
+          role: "CLIENT",
         },
       });
-    }
+      await tx.profile.create({ data: { userId: createdUser.id } });
+
+      const existingClient = await tx.client.findUnique({ where: { email: normalizedEmail } });
+      if (existingClient) {
+        await tx.client.update({
+          where: { id: existingClient.id },
+          data: { userId: createdUser.id, name: data.name.trim() || existingClient.name },
+        });
+      } else {
+        await tx.client.create({
+          data: {
+            name: data.name.trim(),
+            email: normalizedEmail,
+            userId: createdUser.id,
+            goal: "HIPERTROFIA",
+            status: "ACTIVO",
+            plan: "PERSONALIZADO",
+          },
+        });
+      }
+
+      return createdUser;
+    });
 
     const userAgent = req.headers.get("user-agent") || undefined;
     const ipAddress = getClientIp({ headers: req.headers });
@@ -81,6 +87,9 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === "REGISTER_EMAIL_EXISTS") {
+      return NextResponse.json({ error: "Email ya registrado" }, { status: 400 });
     }
 
     // Nunca devolver mensajes internos de Prisma/infraestructura al cliente.
