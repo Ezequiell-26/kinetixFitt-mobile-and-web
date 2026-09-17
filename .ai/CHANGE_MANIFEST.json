@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "task": "normal-development",
-  "status": "template",
+  "task": "full-audit-hardening-2026-09-17",
+  "status": "approved",
   "owner": "ai-agent",
   "allowedPaths": [
     ".ai/**",
@@ -43,5 +43,6 @@
     "apps/mobile/src/app/api/uploads/**",
     "apps/mobile/src/middleware.*",
     "**/*security*.*"
-  ]
+  ],
+  "approvedHighRisk": true
 }
