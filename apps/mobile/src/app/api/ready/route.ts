@@ -23,7 +23,7 @@ function isAuthorized(req: Request): boolean {
   try {
     return crypto.timingSafeEqual(Buffer.from(headerToken), Buffer.from(expected));
   } catch {
-    return headerToken === expected;
+    return false;
   }
 }
 
@@ -56,7 +56,6 @@ export async function GET(req: Request) {
     } else {
       checks.ready = false;
       checks.checks.environment = false;
-      // No loguear nombres de variables (evita fuga en agregador de logs)
       console.warn(`[ready] Missing ${missingVars.length} required env vars`);
     }
 
