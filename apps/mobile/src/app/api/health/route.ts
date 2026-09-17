@@ -20,12 +20,11 @@ function isAuthorized(req: Request): boolean {
       return null;
     })();
   if (!headerToken) return false;
-  // timingSafeEqual exige misma longitud
   if (headerToken.length !== expected.length) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(headerToken), Buffer.from(expected));
   } catch {
-    return headerToken === expected;
+    return false;
   }
 }
 
