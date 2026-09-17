@@ -42,9 +42,13 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 - Webhook settlement now requires an explicit KinetixFitt `paymentId`; it no longer falls back to an arbitrary pending payment for a client.
 - Webhook settlement validates provider amount and currency against the stored payment before changing payment state.
 
+### Auth / account integrity
+- Public registration now creates `User`, `Profile`, and the related `Client` record inside one Prisma transaction, preventing partial accounts when a downstream write fails.
+- Duplicate-email rejection is handled inside the transaction and mapped to the existing public `400` contract.
+
 ### CI / AI guard
 - Static AI repository guard was refined so comment-only mentions such as a honeypot's "falso" response do not become blocking fake-code findings.
-- A fresh GitHub Actions CI run is now triggered from `main` after this fix; final executable outcome must be rechecked before calling CI green.
+- The latest checked `main` run before the current registration hardening still had a failing `gates` check; therefore CI is NOT currently considered green until the new commit is executed and verified.
 
 ### Multiplatform
 - Windows: Electron NSIS target + CI.
@@ -59,7 +63,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 Source/configuration has been deeply inspected through GitHub. The repository cannot yet be declared fully production-ready from source inspection alone. Runtime/device/provider evidence is still required.
 
-The CI run for commit `338f552a...` failed at the static AI guard because of a comment-only false positive in the registration honeypot. That guard has since been corrected in commit `2de192f2468b61fab38cca3bfde255f997b5e1d4`, which has its own CI run in progress.
+The checked CI run for commit `6d1b0286f61cf691c5df3f33b9696f3bb9251c76` completed with `gates = failure` while the Supabase Preview check succeeded. The current registration-atomicity change was then committed as `da0d17a53af75b8fc3a46a9dccaea093597d3435`; no check run had started yet at the moment of this state update.
 
 ## 6. Remaining release blockers
 
