@@ -1,7 +1,7 @@
 # KinetixFitt — Project State
 
 **Status:** Living document / evidence-based  
-**Last verified:** 2026-09-17  
+**Last verified:** 2026-09-18  
 **Repository:** `Ezequiell-26/kinetixFitt-mobile-and-web`
 
 ## 1. Evidence rule
@@ -18,7 +18,14 @@ The repository contains `apps/mobile` and `apps/web` with explicit roles. Curren
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
-## 4. 2026-09-17 hardening on `main`
+## 4. 2026-09-18 hardening on `main`
+
+### Notifications / API input integrity
+- `POST /api/notifications` now uses a strict Zod schema for its mutation payload.
+- The route still supports both existing behaviors: mark one own notification as read, or mark all own unread notifications as read when the payload is `{}`.
+- Unknown payload keys, blank IDs and non-string IDs are now rejected with `400` instead of being silently accepted.
+- Added a focused unit test covering the notification mutation contract and included it in `test:unit`.
+- Source-level review is complete for this batch; CI/Vercel verification for the latest commit is still pending.
 
 ### PWA / offline
 - PWA manifest no longer references screenshot assets absent from the repository.
@@ -48,7 +55,8 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 ### CI / AI guard
 - Static AI repository guard was refined so comment-only mentions such as a honeypot's "falso" response do not become blocking fake-code findings.
-- The latest checked `main` run before the current registration hardening still had a failing `gates` check; therefore CI is NOT currently considered green until the new commit is executed and verified.
+- The duplicate `providerCheckoutId` migration is now idempotent while preserving migration history.
+- The latest commit currently has Vercel checks pending; no green CI conclusion is claimed until runtime verification is visible.
 
 ### Multiplatform
 - Windows: Electron NSIS target + CI.
@@ -63,7 +71,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 Source/configuration has been deeply inspected through GitHub. The repository cannot yet be declared fully production-ready from source inspection alone. Runtime/device/provider evidence is still required.
 
-The checked CI run for commit `6d1b0286f61cf691c5df3f33b9696f3bb9251c76` completed with `gates = failure` while the Supabase Preview check succeeded. The current registration-atomicity change was then committed as `da0d17a53af75b8fc3a46a9dccaea093597d3435`; no check run had started yet at the moment of this state update.
+The notification hardening batch is integrated on `main` at commit `f6a70169af4dcae554e0d5e88016abe4f07567ee`. Source-level verification covers the route contract and unit-test wiring. Vercel checks for that commit are currently pending; CI execution has not been declared green.
 
 ## 6. Remaining release blockers
 
