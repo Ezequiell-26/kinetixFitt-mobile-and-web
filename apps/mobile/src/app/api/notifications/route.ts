@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { notificationMutationSchema } from "@/lib/notification-validation";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
@@ -14,11 +15,14 @@ export async function GET(){
 export async function POST(req: Request){
   const s = await getSession();
   if(!s) return NextResponse.json({error:"No auth"},{status:401, headers: NO_STORE});
-  const body = await req.json().catch(() => null);
-  if(!body) return NextResponse.json({error:"Cuerpo requerido"},{status:400, headers: NO_STORE});
-  const { id } = body as { id?: unknown };
+
+  const parsed = notificationMutationSchema.safeParse(await req.json().catch(() => null));
+  if(!parsed.success){
+    return NextResponse.json({error:"Cuerpo inválido"},{status:400, headers: NO_STORE});
+  }
+
+  const { id } = parsed.data;
   if(id){
-    if(typeof id !== "string") return NextResponse.json({error:"ID inválido"},{status:400, headers: NO_STORE});
     // Solo las propias: marcar la ajena como leída sería IDOR.
     const own = await prisma.notification.findFirst({ where: { id, userId: s.id } });
     if(!own) return NextResponse.json({error:"No encontrada"},{status:404, headers: NO_STORE});
