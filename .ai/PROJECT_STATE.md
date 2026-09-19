@@ -21,11 +21,18 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 ## 4. 2026-09-18 hardening on `main`
 
 ### Notifications / API input integrity
-- `POST /api/notifications` now uses a strict Zod schema for its mutation payload.
+- `POST /api/notifications` uses a strict Zod schema for its mutation payload.
 - The route still supports both existing behaviors: mark one own notification as read, or mark all own unread notifications as read when the payload is `{}`.
-- Unknown payload keys, blank IDs and non-string IDs are now rejected with `400` instead of being silently accepted.
+- Unknown payload keys, blank IDs and non-string IDs are rejected with `400` instead of being silently accepted.
 - Added a focused unit test covering the notification mutation contract and included it in `test:unit`.
-- Source-level review is complete for this batch; CI/Vercel verification for the latest commit is still pending.
+- Source-level review is complete for the API contract; CI/runtime verification for the latest commit remains pending.
+
+### Notifications / accessibility and UX
+- `NotificationsBell` now exposes `aria-expanded` and `aria-haspopup` on the trigger.
+- The bell icon and unread indicator are hidden from redundant screen-reader output while the trigger label includes the unread count.
+- The popover uses dialog semantics, a polite live region for notification content, explicit button types, and Escape-key dismissal.
+- Existing polling, offline guard, routing and mark-all behavior are preserved.
+- This is a source-level accessibility hardening batch; keyboard focus trapping and full browser/assistive-technology verification remain unverified.
 
 ### PWA / offline
 - PWA manifest no longer references screenshot assets absent from the repository.
@@ -33,9 +40,6 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 - Service Worker offline mutation paths match real APIs (`/api/workout-logs`, `/api/checkins`, `/api/measurements`, `/api/progress-photos`).
 - Service Worker outbox uses a dedicated IndexedDB database (`kinetixfitt-sw-outbox`) separate from client offline sync.
 - Retry limits and non-retryable HTTP handling are bounded.
-
-### Cross-app development
-- `apps/web` development uses port `3002`; `apps/mobile` remains on `3001`, preventing root development port collision.
 
 ### Measurements / data integrity
 - `/api/measurements` uses strict Zod validation and numeric bounds.
@@ -50,13 +54,13 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 - Webhook settlement validates provider amount and currency against the stored payment before changing payment state.
 
 ### Auth / account integrity
-- Public registration now creates `User`, `Profile`, and the related `Client` record inside one Prisma transaction, preventing partial accounts when a downstream write fails.
+- Public registration creates `User`, `Profile`, and the related `Client` record inside one Prisma transaction, preventing partial accounts when a downstream write fails.
 - Duplicate-email rejection is handled inside the transaction and mapped to the existing public `400` contract.
 
 ### CI / AI guard
 - Static AI repository guard was refined so comment-only mentions such as a honeypot's "falso" response do not become blocking fake-code findings.
-- The duplicate `providerCheckoutId` migration is now idempotent while preserving migration history.
-- The latest commit currently has Vercel checks pending; no green CI conclusion is claimed until runtime verification is visible.
+- The duplicate `providerCheckoutId` migration is idempotent while preserving migration history.
+- The latest commit currently has no green CI conclusion claimed until runtime verification is visible.
 
 ### Multiplatform
 - Windows: Electron NSIS target + CI.
@@ -71,7 +75,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 Source/configuration has been deeply inspected through GitHub. The repository cannot yet be declared fully production-ready from source inspection alone. Runtime/device/provider evidence is still required.
 
-The notification hardening batch is integrated on `main` at commit `f6a70169af4dcae554e0d5e88016abe4f07567ee`. Source-level verification covers the route contract and unit-test wiring. Vercel checks for that commit are currently pending; CI execution has not been declared green.
+The accessibility hardening batch is integrated on `main` at commit `f806470b68e96d505302bb6bae2f55293a3dfbdc`. Source-level verification covers the notification trigger/popover semantics and preserved behavior. CI/runtime verification for this commit is not yet visible.
 
 ## 6. Remaining release blockers
 
