@@ -48,6 +48,15 @@ export function NotificationsBell(){
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const unread = notifs.filter(n => !n.read).length;
 
   async function markAll(){
@@ -64,13 +73,16 @@ export function NotificationsBell(){
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition"
-        aria-label="Notificaciones"
+        aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : "Notificaciones"}
+        aria-expanded={open}
+        aria-haspopup="dialog"
       >
-        <Bell size={18} className="text-zinc-300" />
+        <Bell size={18} className="text-zinc-300" aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-black text-[11px] font-black rounded-full flex items-center justify-center animate-pulse">
+          <span aria-hidden="true" className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-black text-[11px] font-black rounded-full flex items-center justify-center animate-pulse">
             {unread}
           </span>
         )}
@@ -78,18 +90,23 @@ export function NotificationsBell(){
 
       {open && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <Card className="absolute right-0 top-12 w-[340px] max-w-[90vw] z-40 shadow-2xl border-zinc-800 bg-zinc-950 max-h-[70vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
+          <Card
+            role="dialog"
+            aria-label="Notificaciones"
+            aria-modal="false"
+            className="absolute right-0 top-12 w-[340px] max-w-[90vw] z-40 shadow-2xl border-zinc-800 bg-zinc-950 max-h-[70vh] overflow-hidden flex flex-col"
+          >
             <div className="p-3.5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
               <p className="font-bold text-sm text-white">Notificaciones</p>
               {unread > 0 && (
-                <button onClick={markAll} className="text-xs text-primary hover:underline font-medium">
+                <button type="button" onClick={markAll} className="text-xs text-primary hover:underline font-medium">
                   Marcar leídas
                 </button>
               )}
             </div>
 
-            <div className="overflow-y-auto flex-1 divide-y divide-zinc-900">
+            <div className="overflow-y-auto flex-1 divide-y divide-zinc-900" aria-live="polite">
               {notifs.length === 0 ? (
                 <p className="text-xs text-zinc-500 p-8 text-center">No hay notificaciones todavía</p>
               ) : (
@@ -103,6 +120,7 @@ export function NotificationsBell(){
                       onClick={() => setOpen(false)}
                     >
                       <div
+                        aria-hidden="true"
                         className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                           !n.read ? "bg-primary" : "bg-transparent"
                         }`}
