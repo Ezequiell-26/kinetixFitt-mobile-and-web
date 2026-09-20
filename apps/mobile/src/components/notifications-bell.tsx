@@ -15,6 +15,8 @@ type Notif = {
   createdAt: string;
 };
 
+const NOTIFICATIONS_PANEL_ID = "kinetixfitt-notifications-panel";
+
 export function NotificationsBell(){
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
@@ -78,6 +80,7 @@ export function NotificationsBell(){
         className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition"
         aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : "Notificaciones"}
         aria-expanded={open}
+        aria-controls={NOTIFICATIONS_PANEL_ID}
         aria-haspopup="dialog"
       >
         <Bell size={18} className="text-zinc-300" aria-hidden="true" />
@@ -92,6 +95,7 @@ export function NotificationsBell(){
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
           <Card
+            id={NOTIFICATIONS_PANEL_ID}
             role="dialog"
             aria-label="Notificaciones"
             aria-modal="false"
