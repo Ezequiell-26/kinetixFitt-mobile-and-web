@@ -1,7 +1,7 @@
 # KinetixFitt — Project State
 
 **Status:** Living document / evidence-based  
-**Last verified:** 2026-09-18  
+**Last verified:** 2026-09-20  
 **Repository:** `Ezequiell-26/kinetixFitt-mobile-and-web`
 
 ## 1. Evidence rule
@@ -18,66 +18,24 @@ The repository contains `apps/mobile` and `apps/web` with explicit roles. Curren
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
-## 4. 2026-09-18 hardening on `main`
-
-### Notifications / API input integrity
-- `POST /api/notifications` uses a strict Zod schema for its mutation payload.
-- The route still supports both existing behaviors: mark one own notification as read, or mark all own unread notifications as read when the payload is `{}`.
-- Unknown payload keys, blank IDs and non-string IDs are rejected with `400` instead of being silently accepted.
-- Added a focused unit test covering the notification mutation contract and included it in `test:unit`.
-- Source-level review is complete for the API contract; CI/runtime verification for the latest commit remains pending.
+## 4. 2026-09-20 hardening on `main`
 
 ### Notifications / accessibility and UX
-- `NotificationsBell` now exposes `aria-expanded` and `aria-haspopup` on the trigger.
-- The bell icon and unread indicator are hidden from redundant screen-reader output while the trigger label includes the unread count.
-- The popover uses dialog semantics, a polite live region for notification content, explicit button types, and Escape-key dismissal.
-- Existing polling, offline guard, routing and mark-all behavior are preserved.
-- This is a source-level accessibility hardening batch; keyboard focus trapping and full browser/assistive-technology verification remain unverified.
+- The notification trigger now exposes `aria-controls` pointing to the rendered dialog panel ID, making the trigger-to-panel relationship explicit for assistive technology.
+- Existing `aria-expanded`, dialog semantics, Escape dismissal, live-region behavior, polling guards and notification actions are preserved.
+- This is a small source-level accessibility improvement; focus trapping, focus return and assistive-technology/browser verification remain unverified.
 
-### PWA / offline
-- PWA manifest no longer references screenshot assets absent from the repository.
-- Service Worker no longer caches `/api/*` responses or authenticated dashboard navigations.
-- Service Worker offline mutation paths match real APIs (`/api/workout-logs`, `/api/checkins`, `/api/measurements`, `/api/progress-photos`).
-- Service Worker outbox uses a dedicated IndexedDB database (`kinetixfitt-sw-outbox`) separate from client offline sync.
-- Retry limits and non-retryable HTTP handling are bounded.
+## 5. Existing verified/partial areas
 
-### Measurements / data integrity
-- `/api/measurements` uses strict Zod validation and numeric bounds.
-- Client writes resolve the authenticated client server-side.
-- Trainer writes require trainer ownership of the target client.
-- Reads are scoped to the authenticated client/trainer relationship.
+- Notification mutation input validation, ownership checks and focused unit coverage are implemented.
+- Registration transaction integrity, measurement ownership validation, webhook signature/amount checks, upload hardening and bounded offline retry behavior are implemented at source level.
+- PWA caching rules, native packaging workflows, payments, push, storage, AI provider behavior and deployment topology remain partial or externally dependent until runtime evidence exists.
 
-### Payments / webhook trust
-- Payment checkout already uses provider-specific idempotency and local payment records.
-- Stripe and Mercado Pago webhook events remain atomically claimed and provider-signed.
-- Webhook settlement now requires an explicit KinetixFitt `paymentId`; it no longer falls back to an arbitrary pending payment for a client.
-- Webhook settlement validates provider amount and currency against the stored payment before changing payment state.
+## 6. Verification state
 
-### Auth / account integrity
-- Public registration creates `User`, `Profile`, and the related `Client` record inside one Prisma transaction, preventing partial accounts when a downstream write fails.
-- Duplicate-email rejection is handled inside the transaction and mapped to the existing public `400` contract.
+The accessibility change was integrated into `main` in commit `024014a56acf28f92531ccf4750e5c3919040840`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for this commit is not yet visible and is therefore not claimed.
 
-### CI / AI guard
-- Static AI repository guard was refined so comment-only mentions such as a honeypot's "falso" response do not become blocking fake-code findings.
-- The duplicate `providerCheckoutId` migration is idempotent while preserving migration history.
-- The latest commit currently has no green CI conclusion claimed until runtime verification is visible.
-
-### Multiplatform
-- Windows: Electron NSIS target + CI.
-- macOS: Electron DMG target + CI.
-- Android: Capacitor generation/sync + debug APK workflow + separate signed AAB workflow.
-- iOS: Capacitor generation/sync on macOS + iOS Simulator artifact workflow.
-- Electron uses sandboxed renderer, context isolation, disabled Node integration and same-origin navigation checks.
-- Native projects remain generated rather than committed to avoid platform drift.
-- Platform verifier checks monorepo layout, dependency locations and manifest asset references.
-
-## 5. Verification state
-
-Source/configuration has been deeply inspected through GitHub. The repository cannot yet be declared fully production-ready from source inspection alone. Runtime/device/provider evidence is still required.
-
-The accessibility hardening batch is integrated on `main` at commit `f806470b68e96d505302bb6bae2f55293a3dfbdc`. Source-level verification covers the notification trigger/popover semantics and preserved behavior. CI/runtime verification for this commit is not yet visible.
-
-## 6. Remaining release blockers
+## 7. Remaining release blockers
 
 1. Green CI result for the latest `main` commit.
 2. Real PostgreSQL migration validation against staging/production.
@@ -93,6 +51,6 @@ The accessibility hardening batch is integrated on `main` at commit `f806470b68e
 12. GitHub branch protection and required checks for `main`.
 13. Full native push/camera/haptics/other device-specific capabilities require explicit Capacitor plugins if the product intends native APIs rather than Web APIs.
 
-## 7. Operating principle
+## 8. Operating principle
 
 **KinetixFitt should gain capabilities without losing reliability.**
