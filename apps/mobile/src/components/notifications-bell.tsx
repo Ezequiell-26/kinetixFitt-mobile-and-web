@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ const NOTIFICATIONS_PANEL_ID = "kinetixfitt-notifications-panel";
 export function NotificationsBell(){
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   async function load(){
     try {
@@ -51,7 +52,10 @@ export function NotificationsBell(){
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      triggerRef.current?.focus();
+      return;
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
@@ -75,6 +79,7 @@ export function NotificationsBell(){
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(!open)}
         className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition"
