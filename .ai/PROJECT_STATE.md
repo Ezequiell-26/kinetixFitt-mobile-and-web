@@ -1,7 +1,7 @@
 # KinetixFitt — Project State
 
 **Status:** Living document / evidence-based  
-**Last verified:** 2026-09-20  
+**Last verified:** 2026-09-21  
 **Repository:** `Ezequiell-26/kinetixFitt-mobile-and-web`
 
 ## 1. Evidence rule
@@ -18,12 +18,13 @@ The repository contains `apps/mobile` and `apps/web` with explicit roles. Curren
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
-## 4. 2026-09-20 hardening on `main`
+## 4. 2026-09-21 hardening on `main`
 
 ### Notifications / accessibility and UX
-- The notification trigger now exposes `aria-controls` pointing to the rendered dialog panel ID, making the trigger-to-panel relationship explicit for assistive technology.
-- Existing `aria-expanded`, dialog semantics, Escape dismissal, live-region behavior, polling guards and notification actions are preserved.
-- This is a small source-level accessibility improvement; focus trapping, focus return and assistive-technology/browser verification remain unverified.
+- The notification trigger exposes `aria-controls` pointing to the rendered dialog panel ID.
+- The notification control now restores focus to the trigger after Escape, backdrop dismissal or any other close state transition.
+- Existing `aria-expanded`, dialog semantics, live-region behavior, polling guards and notification actions are preserved.
+- This is a small source-level accessibility improvement; focus trapping, assistive-technology/browser verification and mobile viewport verification remain unverified.
 
 ## 5. Existing verified/partial areas
 
@@ -33,7 +34,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 ## 6. Verification state
 
-The accessibility change was integrated into `main` in commit `024014a56acf28f92531ccf4750e5c3919040840`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for this commit is not yet visible and is therefore not claimed.
+The focus-restoration accessibility change was integrated into `main` in commit `7c74d4622c4cc7932021c7a9b6e91f60f8c29aef`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for this commit is not yet visible and is therefore not claimed.
 
 ## 7. Remaining release blockers
 
