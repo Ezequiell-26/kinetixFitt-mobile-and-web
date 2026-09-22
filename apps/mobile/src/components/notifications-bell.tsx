@@ -16,11 +16,20 @@ type Notif = {
 };
 
 const NOTIFICATIONS_PANEL_ID = "kinetixfitt-notifications-panel";
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "[tabindex]:not([tabindex=\"-1\"])"
+].join(",");
 
 export function NotificationsBell(){
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   async function load(){
     try {
@@ -35,7 +44,6 @@ export function NotificationsBell(){
   useEffect(() => {
     let alive = true;
     const tick = () => {
-      // Sin polling en background/offline: batería + servidor.
       if (document.hidden || !navigator.onLine) return;
       if (alive) load();
     };
@@ -56,9 +64,35 @@ export function NotificationsBell(){
       triggerRef.current?.focus();
       return;
     }
+
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusables = () => Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    focusables()[0]?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
@@ -100,10 +134,11 @@ export function NotificationsBell(){
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
           <Card
+            ref={panelRef}
             id={NOTIFICATIONS_PANEL_ID}
             role="dialog"
             aria-label="Notificaciones"
-            aria-modal="false"
+            aria-modal="true"
             className="absolute right-0 top-12 w-[340px] max-w-[90vw] z-40 shadow-2xl border-zinc-800 bg-zinc-950 max-h-[70vh] overflow-hidden flex flex-col"
           >
             <div className="p-3.5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
