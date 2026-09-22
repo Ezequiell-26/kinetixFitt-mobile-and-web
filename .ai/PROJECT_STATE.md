@@ -22,8 +22,9 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 ### Notifications / accessibility and UX
 - The notification trigger exposes `aria-controls` pointing to the rendered dialog panel ID.
-- The notification control now restores focus to the trigger after Escape, backdrop dismissal or any other close state transition.
-- Existing `aria-expanded`, dialog semantics, live-region behavior, polling guards and notification actions are preserved.
+- The notification control restores focus to the trigger after Escape, backdrop dismissal or any other close state transition.
+- The notification dialog now uses `aria-modal="true"` and traps `Tab`/`Shift+Tab` focus within its interactive controls while open.
+- Existing polling guards, live-region behavior and notification actions are preserved.
 - This is a small source-level accessibility improvement; focus trapping, assistive-technology/browser verification and mobile viewport verification remain unverified.
 
 ## 5. Existing verified/partial areas
@@ -34,7 +35,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 ## 6. Verification state
 
-The focus-restoration accessibility change was integrated into `main` in commit `7c74d4622c4cc7932021c7a9b6e91f60f8c29aef`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for this commit is not yet visible and is therefore not claimed.
+The focus-restoration accessibility change was integrated into `main` in commit `7c74d4622c4cc7932021c7a9b6e91f60f8c29aef`. The follow-up keyboard focus-trap change was integrated into `main` in commit `80da0ce289f61dfd66358105c9b772b627868a44`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for the latest commit is not yet visible and is therefore not claimed.
 
 ## 7. Remaining release blockers
 
