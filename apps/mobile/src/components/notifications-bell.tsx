@@ -22,16 +22,17 @@ const FOCUSABLE_SELECTOR = [
   "textarea:not([disabled])",
   "input:not([disabled])",
   "select:not([disabled])",
-  "[tabindex]:not([tabindex=\"-1\"])"
+  "[tabindex]:not([tabindex=\"-1\"])",
 ].join(",");
 
-export function NotificationsBell(){
+export function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
 
-  async function load(){
+  async function load() {
     try {
       const res = await fetch("/api/notifications");
       if (res.ok) {
@@ -61,10 +62,12 @@ export function NotificationsBell(){
 
   useEffect(() => {
     if (!open) {
-      triggerRef.current?.focus();
+      if (wasOpenRef.current) triggerRef.current?.focus();
+      wasOpenRef.current = false;
       return;
     }
 
+    wasOpenRef.current = true;
     const panel = panelRef.current;
     if (!panel) return;
     const focusables = () => Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
@@ -97,16 +100,16 @@ export function NotificationsBell(){
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  const unread = notifs.filter(n => !n.read).length;
+  const unread = notifs.filter((n) => !n.read).length;
 
-  async function markAll(){
+  async function markAll() {
     try {
       await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
-      setNotifs(notifs.map(n => ({ ...n, read: true })));
+      setNotifs(notifs.map((n) => ({ ...n, read: true })));
     } catch {}
   }
 
@@ -116,7 +119,7 @@ export function NotificationsBell(){
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(!open)}
-        className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition"
+        className="relative rounded-xl border border-zinc-800 bg-zinc-900 p-2.5 transition hover:border-zinc-700"
         aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : "Notificaciones"}
         aria-expanded={open}
         aria-controls={NOTIFICATIONS_PANEL_ID}
@@ -124,7 +127,7 @@ export function NotificationsBell(){
       >
         <Bell size={18} className="text-zinc-300" aria-hidden="true" />
         {unread > 0 && (
-          <span aria-hidden="true" className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-black text-[11px] font-black rounded-full flex items-center justify-center animate-pulse">
+          <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-black text-black animate-pulse">
             {unread}
           </span>
         )}
@@ -139,44 +142,38 @@ export function NotificationsBell(){
             role="dialog"
             aria-label="Notificaciones"
             aria-modal="true"
-            className="absolute right-0 top-12 w-[340px] max-w-[90vw] z-40 shadow-2xl border-zinc-800 bg-zinc-950 max-h-[70vh] overflow-hidden flex flex-col"
+            className="absolute right-0 top-12 z-40 flex max-h-[70vh] w-[340px] max-w-[90vw] flex-col overflow-hidden border-zinc-800 bg-zinc-950 shadow-2xl"
           >
-            <div className="p-3.5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-              <p className="font-bold text-sm text-white">Notificaciones</p>
+            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/50 p-3.5">
+              <p className="text-sm font-bold text-white">Notificaciones</p>
               {unread > 0 && (
-                <button type="button" onClick={markAll} className="text-xs text-primary hover:underline font-medium">
+                <button type="button" onClick={markAll} className="text-xs font-medium text-primary hover:underline">
                   Marcar leídas
                 </button>
               )}
             </div>
 
-            <div className="overflow-y-auto flex-1 divide-y divide-zinc-900" aria-live="polite">
+            <div className="flex-1 divide-y divide-zinc-900 overflow-y-auto" aria-live="polite">
               {notifs.length === 0 ? (
-                <p className="text-xs text-zinc-500 p-8 text-center">No hay notificaciones todavía</p>
+                <p className="p-8 text-center text-xs text-zinc-500">No hay notificaciones todavía</p>
               ) : (
-                notifs.map(n => {
+                notifs.map((n) => {
                   const content = (
                     <div
                       key={n.id}
-                      className={`p-3 flex gap-3 hover:bg-zinc-900/60 transition ${
-                        !n.read ? "bg-primary/[0.04]" : ""
-                      }`}
+                      className={`flex gap-3 p-3 transition hover:bg-zinc-900/60 ${!n.read ? "bg-primary/[0.04]" : ""}`}
                       onClick={() => setOpen(false)}
                     >
                       <div
                         aria-hidden="true"
-                        className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                          !n.read ? "bg-primary" : "bg-transparent"
-                        }`}
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.read ? "bg-primary" : "bg-transparent"}`}
                       />
-                      <div className="flex-1 min-w-0 text-xs">
-                        <p className="font-bold text-white truncate">{n.title}</p>
-                        <p className="text-zinc-400 truncate mt-0.5">{n.body}</p>
-                        <div className="flex items-center justify-between mt-1.5 text-[10px] text-zinc-500">
-                          <span>
-                            {new Date(n.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
-                          </span>
-                          <Badge variant="muted" className="text-[9px] py-0 px-1.5">
+                      <div className="min-w-0 flex-1 text-xs">
+                        <p className="truncate font-bold text-white">{n.title}</p>
+                        <p className="mt-0.5 truncate text-zinc-400">{n.body}</p>
+                        <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500">
+                          <span>{new Date(n.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                          <Badge variant="muted" className="px-1.5 py-0 text-[9px]">
                             {n.type}
                           </Badge>
                         </div>
