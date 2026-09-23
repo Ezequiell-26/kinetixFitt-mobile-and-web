@@ -61,7 +61,7 @@
     "@sentry/nextjs": "^10.74.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.109.0",
-    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-table": "^9.2.4",
     "@types/three": "^0.186.0",
     "@types/web-push": "^3.6.4",
     "@upstash/ratelimit": "^2.1.0",
