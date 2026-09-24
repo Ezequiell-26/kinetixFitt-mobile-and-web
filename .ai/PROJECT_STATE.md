@@ -1,7 +1,7 @@
 # KinetixFitt — Project State
 
 **Status:** Living document / evidence-based  
-**Last verified:** 2026-09-22  
+**Last verified:** 2026-09-24  
 **Repository:** `Ezequiell-26/kinetixFitt-mobile-and-web`
 
 ## 1. Evidence rule
@@ -18,15 +18,17 @@ The repository contains `apps/mobile` and `apps/web` with explicit roles. Curren
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
-## 4. 2026-09-22 hardening on `main`
+## 4. 2026-09-24 hardening on `main`
 
-### Notifications / accessibility and UX
+### Notifications / accessibility, UX and lifecycle safety
 - The notification trigger exposes `aria-controls` pointing to the rendered dialog panel ID.
 - The notification control restores focus to the trigger after Escape, backdrop dismissal or any other close state transition.
 - The notification dialog uses `aria-modal="true"` and traps `Tab`/`Shift+Tab` focus within its interactive controls while open.
-- Focus restoration no longer runs on initial component mount; it only runs after an actual open → close transition, avoiding an unintended focus jump for keyboard and assistive-technology users.
+- Focus restoration does not run on initial component mount; it only runs after an actual open → close transition, avoiding an unintended focus jump for keyboard and assistive-technology users.
+- Polling requests now use an `AbortController` and abort on component unmount, preventing stale response updates after teardown.
+- The notification list update after a successful mark-all request uses a functional state update, avoiding stale-closure overwrites when polling overlaps with the mutation.
 - Existing polling guards, live-region behavior and notification actions are preserved.
-- These are small source-level accessibility improvements; browser, assistive-technology and mobile viewport verification remain unverified.
+- These are source-level improvements; browser, assistive-technology and mobile runtime verification remain unverified.
 
 ## 5. Existing verified/partial areas
 
@@ -36,7 +38,7 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 
 ## 6. Verification state
 
-The focus-restoration accessibility change was integrated into `main` in commit `7c74d4622c4cc7932021c7a9b6e91f60f8c29aef`. The keyboard focus-trap change was integrated into `main` in commit `80da0ce289f61dfd66358105c9b772b627868a44`. The mount-focus regression fix was integrated into `main` in commit `c3a6fd735fc01a992366a0660b498f2fdd3dc25e`. Source-level verification was performed by reviewing the updated component. CI/runtime/browser/assistive-technology verification for the latest commit is not yet visible and is therefore not claimed.
+The latest source change is integrated in `main` at commit `553fcd4450fc2df599c5b50d5a9120a1d8b59bb3`. Source-level verification was performed by reviewing the updated component and preserving existing behavior. CI/runtime/browser/assistive-technology verification for the latest commit is not yet visible and is therefore not claimed.
 
 ## 7. Remaining release blockers
 
