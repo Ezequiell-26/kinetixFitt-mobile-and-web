@@ -32,28 +32,30 @@ export function NotificationsBell() {
   const panelRef = useRef<HTMLDivElement>(null);
   const wasOpenRef = useRef(false);
 
-  async function load() {
+  async function load(signal?: AbortSignal) {
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications", { signal });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) setNotifs(data);
+        if (Array.isArray(data) && !signal?.aborted) setNotifs(data);
       }
-    } catch {}
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+    }
   }
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
     const tick = () => {
       if (document.hidden || !navigator.onLine) return;
-      if (alive) load();
+      void load(controller.signal);
     };
-    load();
+    void load(controller.signal);
     const t = setInterval(tick, 30000);
     document.addEventListener("visibilitychange", tick);
     window.addEventListener("online", tick);
     return () => {
-      alive = false;
+      controller.abort();
       clearInterval(t);
       document.removeEventListener("visibilitychange", tick);
       window.removeEventListener("online", tick);
@@ -104,12 +106,13 @@ export function NotificationsBell() {
 
   async function markAll() {
     try {
-      await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      setNotifs(notifs.map((n) => ({ ...n, read: true })));
+      if (!res.ok) return;
+      setNotifs((current) => current.map((n) => ({ ...n, read: true })));
     } catch {}
   }
 
