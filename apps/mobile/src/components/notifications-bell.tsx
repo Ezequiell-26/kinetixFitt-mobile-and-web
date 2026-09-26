@@ -139,14 +139,14 @@ export function NotificationsBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden="true" />
-          <Card
-            ref={panelRef}
-            id={NOTIFICATIONS_PANEL_ID}
-            role="dialog"
-            aria-label="Notificaciones"
-            aria-modal="true"
-            className="absolute right-0 top-12 z-40 flex max-h-[70vh] w-[340px] max-w-[90vw] flex-col overflow-hidden border-zinc-800 bg-zinc-950 shadow-2xl"
-          >
+          <div ref={panelRef}>
+            <Card
+              id={NOTIFICATIONS_PANEL_ID}
+              role="dialog"
+              aria-label="Notificaciones"
+              aria-modal="true"
+              className="absolute right-0 top-12 z-40 flex max-h-[70vh] w-[340px] max-w-[90vw] flex-col overflow-hidden border-zinc-800 bg-zinc-950 shadow-2xl"
+            >
             <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/50 p-3.5">
               <p className="text-sm font-bold text-white">Notificaciones</p>
               {unread > 0 && (
@@ -194,7 +194,8 @@ export function NotificationsBell() {
                 })
               )}
             </div>
-          </Card>
+            </Card>
+          </div>
         </>
       )}
     </div>
