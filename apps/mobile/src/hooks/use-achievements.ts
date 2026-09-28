@@ -47,6 +47,10 @@ export interface GamificationState {
 
 const STORAGE_KEY = "ec_gamification_v1";
 
+function storageKeyForUser(userId: string): string {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
 const DEFAULT_STATE: GamificationState = {
   xp: 0,
   stats: {
@@ -72,22 +76,31 @@ const DEFAULT_STATE: GamificationState = {
   challengeProgress: {},
 };
 
-function loadState(): GamificationState {
+function loadState(userId: string): GamificationState {
   if (typeof window === "undefined") return DEFAULT_STATE;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKeyForUser(userId));
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed, stats: { ...DEFAULT_STATE.stats, ...(parsed.stats || {}) } };
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      stats: { ...DEFAULT_STATE.stats, ...(parsed.stats || {}) },
+      unlockedIds: Array.isArray(parsed.unlockedIds) ? parsed.unlockedIds : [],
+      challengeProgress:
+        parsed.challengeProgress && typeof parsed.challengeProgress === "object"
+          ? parsed.challengeProgress
+          : {},
+    };
   } catch {
     return DEFAULT_STATE;
   }
 }
 
-function saveState(state: GamificationState) {
+function saveState(userId: string, state: GamificationState) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(storageKeyForUser(userId), JSON.stringify(state));
   } catch {
     // Ignorar: storage lleno o bloqueado.
   }
@@ -106,16 +119,51 @@ export interface NewUnlock {
 export function useAchievements() {
   const [state, setState] = useState<GamificationState>(DEFAULT_STATE);
   const [pendingUnlocks, setPendingUnlocks] = useState<NewUnlock[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hidratación desde localStorage después del montaje.
+  // El backend es la fuente de identidad. La cookie httpOnly no es legible
+  // desde el cliente, por eso resolvemos el id vía /api/auth/me.
   useEffect(() => {
-    setState(loadState());
+    let cancelled = false;
+
+    async function hydrate() {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) {
+          if (!cancelled) setIsHydrated(true);
+          return;
+        }
+
+        const payload = (await response.json()) as { user?: { id?: string } | null };
+        const resolvedUserId = payload.user?.id;
+        if (!resolvedUserId) {
+          if (!cancelled) setIsHydrated(true);
+          return;
+        }
+
+        if (!cancelled) {
+          setUserId(resolvedUserId);
+          setState(loadState(resolvedUserId));
+          setIsHydrated(true);
+        }
+      } catch {
+        if (!cancelled) setIsHydrated(true);
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Persistir cambios.
+  // Persistir únicamente después de resolver la identidad para impedir
+  // fugas de progreso entre cuentas del mismo navegador.
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    if (!userId || !isHydrated) return;
+    saveState(userId, state);
+  }, [isHydrated, state, userId]);
 
   /**
    * Logros con el progreso actual calculado desde stats.
