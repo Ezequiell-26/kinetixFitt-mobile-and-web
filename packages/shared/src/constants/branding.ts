@@ -42,8 +42,8 @@ export const BRAND = {
 
   // Colors (from design system)
   colors: {
-    primary: "#D6FF2A", // Electric lime
-    primaryRGB: "214, 255, 42",
+    primary: "#34D399", // Emerald primary
+    primaryRGB: "52, 211, 153",
     dark: "#09090B", // Zinc-950
     darkRGB: "9, 9, 11",
   },
