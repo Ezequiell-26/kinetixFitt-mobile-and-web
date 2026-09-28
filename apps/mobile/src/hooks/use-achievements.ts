@@ -162,7 +162,7 @@ export function useAchievements() {
           const stats = { ...prev.stats, ...remoteStats };
           const unlockedIds = ACHIEVEMENTS
             .filter((achievement) => {
-              const current = stats[achievement.requirement.type] ?? 0;
+              const current = (stats as Record<string, number>)[achievement.requirement.type] ?? 0;
               return current >= achievement.requirement.value;
             })
             .map((achievement) => achievement.id);
