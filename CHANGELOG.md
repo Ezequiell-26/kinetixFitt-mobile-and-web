@@ -1,3 +1,7 @@
+# Changelog
+
+Todas las versiones notables de KINETIXFITT.
+
 ## [Unreleased]
 
 ### Calidad de producto y verificación
@@ -6,12 +10,6 @@
 - Agregadas las traducciones faltantes de navegación y login que generaban warnings en runtime.
 - Eliminados controles de demo que permitían fabricar XP o completar desafíos sin una actividad registrada.
 - Leaderboard global oculto cuando no existe una fuente persistente y aislada por usuario.
-
-# Changelog
-
-Todas las versiones notables de KINETIXFITT.
-
-## [Unreleased]
 
 ### Gamificación y persistencia
 - Se aisló el estado de logros por usuario para evitar que un desbloqueo afecte a otras cuentas.
