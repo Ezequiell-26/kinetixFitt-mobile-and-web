@@ -244,11 +244,16 @@ test.describe('KinetixFitt E2E – login → dashboard → checkin (mock DB)', (
     await expect(page.locator('#password')).toBeVisible();
     await expect(page.getByRole('button', { name: /INGRESAR/i })).toBeVisible();
 
-    // Intento fallido → mensaje de error por role=alert
+    // Intento fallido: valida el contrato HTTP 401 del flujo de autenticación.
     await page.locator('#email').fill('noexiste@demo.com');
     await page.locator('#password').fill('wrong');
+    const invalidLogin = page.waitForResponse((response) =>
+      response.url().includes('/api/auth/login') && response.request().method() === 'POST'
+    );
     await page.getByRole('button', { name: /INGRESAR/i }).click();
-    await expect(page.getByText(/Credenciales inválidas|Error/i).first()).toBeVisible({ timeout: 5000 });
+    const invalidResponse = await invalidLogin;
+    expect(invalidResponse.status()).toBe(401);
+    await expect(invalidResponse.json()).resolves.toEqual({ error: 'Credenciales inválidas' });
 
     // Login exitoso → redirige a dashboard (mock)
     await page.locator('#email').fill(MOCK_USER.email);
