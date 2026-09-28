@@ -224,30 +224,6 @@ export function useAchievements() {
   );
 
   /**
-   * Marca un challenge como completado manualmente y otorga XP.
-   */
-  const completeChallenge = useCallback((challengeId: string) => {
-    setState((prev) => {
-      const all = [...WEEKLY_CHALLENGES, ...MONTHLY_CHALLENGES];
-      const target = all.find((c) => c.id === challengeId);
-      if (!target) return prev;
-
-      const current =
-        prev.challengeProgress[challengeId] ??
-        ((prev.stats as Record<string, number>)[target.requirement.type] ?? 0);
-
-      if (current >= target.requirement.value) return prev; // ya completado
-
-      const nextProgress = { ...prev.challengeProgress, [challengeId]: target.requirement.value };
-      return {
-        ...prev,
-        challengeProgress: nextProgress,
-        xp: prev.xp + target.xp,
-      };
-    });
-  }, []);
-
-  /**
    * Descarta la notificación de logro más antigua (FIFO).
    */
   const dismissUnlock = useCallback(() => {
