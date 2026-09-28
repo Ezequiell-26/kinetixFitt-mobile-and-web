@@ -1,16 +1,16 @@
 :root {
-  --primary: 198 249 30;
-  --primary-hover: 216 255 74;
+  --primary: 52 211 153;
+  --primary-hover: 110 231 183;
   --surface: 11 21 30;
   --surface-elevated: 18 30 40;
   --subtle: 28 49 66;
-  --success: 198 249 30;
+  --success: 52 211 153;
   --background: 208 33% 7%;
   --foreground: 0 0% 98%;
   --card: 208 31% 9%;
   --card-foreground: 0 0% 98%;
   --border: 208 40% 18%;
-  --accent: 74 100% 56%;
+  --accent: 160 64% 51%;
 }
 
 html:not(.light) body,
@@ -23,23 +23,23 @@ html:not(.light) .bg-surface { background-color: #0B151E; }
 html:not(.light) .bg-surface\/40 { background-color: rgba(11,21,30,.40); }
 html:not(.light) .bg-surface\/60 { background-color: rgba(11,21,30,.60); }
 html:not(.light) .bg-surface\/70 { background-color: rgba(11,21,30,.70); }
-html:not(.light) .text-primary { color: #C6F91E !important; }
-html:not(.light) .bg-primary { background-color: #C6F91E !important; }
-html:not(.light) .border-primary\/20 { border-color: rgba(198,249,30,.20); }
-html:not(.light) .border-primary\/25 { border-color: rgba(198,249,30,.25); }
-html:not(.light) .border-primary\/30 { border-color: rgba(198,249,30,.30); }
-html:not(.light) .bg-primary\/10 { background-color: rgba(198,249,30,.10); }
-html:not(.light) .bg-primary\/[0.035] { background-color: rgba(198,249,30,.035); }
-html:not(.light) .bg-primary\/[0.06] { background-color: rgba(198,249,30,.06); }
-html:not(.light) .bg-primary\/[0.08] { background-color: rgba(198,249,30,.08); }
-html:not(.light) .bg-primary\/[0.09] { background-color: rgba(198,249,30,.09); }
-html:not(.light) .bg-primary\/[0.10] { background-color: rgba(198,249,30,.10); }
-html:not(.light) .bg-primary\/[0.12] { background-color: rgba(198,249,30,.12); }
-html:not(.light) .bg-primary\/[0.13] { background-color: rgba(198,249,30,.13); }
-html:not(.light) .fill-primary\/10 { fill: rgba(198,249,30,.10); }
-html:not(.light) .from-primary\/10 { --tw-gradient-from: rgba(198,249,30,.10) var(--tw-gradient-from-position); }
-html:not(.light) .from-primary\/[0.06] { --tw-gradient-from: rgba(198,249,30,.06) var(--tw-gradient-from-position); }
-html:not(.light) .shadow-primary { box-shadow: 0 0 30px rgba(198,249,30,.18); }
+html:not(.light) .text-primary { color: #34D399 !important; }
+html:not(.light) .bg-primary { background-color: #34D399 !important; }
+html:not(.light) .border-primary\/20 { border-color: rgba(52,211,153,.20); }
+html:not(.light) .border-primary\/25 { border-color: rgba(52,211,153,.25); }
+html:not(.light) .border-primary\/30 { border-color: rgba(52,211,153,.30); }
+html:not(.light) .bg-primary\/10 { background-color: rgba(52,211,153,.10); }
+html:not(.light) .bg-primary\/[0.035] { background-color: rgba(52,211,153,.035); }
+html:not(.light) .bg-primary\/[0.06] { background-color: rgba(52,211,153,.06); }
+html:not(.light) .bg-primary\/[0.08] { background-color: rgba(52,211,153,.08); }
+html:not(.light) .bg-primary\/[0.09] { background-color: rgba(52,211,153,.09); }
+html:not(.light) .bg-primary\/[0.10] { background-color: rgba(52,211,153,.10); }
+html:not(.light) .bg-primary\/[0.12] { background-color: rgba(52,211,153,.12); }
+html:not(.light) .bg-primary\/[0.13] { background-color: rgba(52,211,153,.13); }
+html:not(.light) .fill-primary\/10 { fill: rgba(52,211,153,.10); }
+html:not(.light) .from-primary\/10 { --tw-gradient-from: rgba(52,211,153,.10) var(--tw-gradient-from-position); }
+html:not(.light) .from-primary\/[0.06] { --tw-gradient-from: rgba(52,211,153,.06) var(--tw-gradient-from-position); }
+html:not(.light) .shadow-primary { box-shadow: 0 0 30px rgba(52,211,153,.18); }
 
 html:not(.light) .surface-card {
   background-color: #0B151E;
@@ -59,8 +59,8 @@ html:not(.light) ::-webkit-scrollbar-thumb { background: #1C3142; }
 
 html:not(.light) body::before {
   background:
-    radial-gradient(ellipse 80% 60% at 12% -10%, rgba(198,249,30,.055), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 88% 110%, rgba(198,249,30,.028), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 12% -10%, rgba(52,211,153,.055), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 88% 110%, rgba(52,211,153,.028), transparent 55%),
     radial-gradient(ellipse 100% 70% at 50% -5%, rgba(11,21,30,.92), transparent 52%),
     radial-gradient(ellipse 120% 80% at 50% 0%, rgba(0,0,0,0), rgba(0,0,0,.42) 100%);
 }
