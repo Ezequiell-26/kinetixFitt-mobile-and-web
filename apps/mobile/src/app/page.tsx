@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/landing/site-nav";
 import { SiteFooter } from "@/components/landing/site-footer";
-import { BRAND } from "@/constants/branding";
 import { ArrowRight, Apple, BarChart3, Check, Clock3, Dumbbell, HeartPulse, MessageCircle, Play, ShieldCheck, Sparkles, Target } from "lucide-react";
 
 const pillars = [
