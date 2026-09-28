@@ -50,14 +50,14 @@ export default function AuthPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#081119] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(198,249,30,0.10),transparent_32%),radial-gradient(circle_at_85%_90%,rgba(198,249,30,0.07),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,0.10),transparent_32%),radial-gradient(circle_at_85%_90%,rgba(52,211,153,0.07),transparent_30%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:44px_44px] opacity-40" />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden lg:flex flex-col justify-between border-r border-white/[0.06] p-12 xl:p-16">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-black font-black shadow-[0_10px_40px_rgba(198,249,30,0.22)]">K</div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-black font-black shadow-[0_10px_40px_rgba(52,211,153,0.22)]">K</div>
               <div>
                 <p className="text-sm font-black tracking-[0.18em]">KINETIXFITT</p>
                 <p className="text-[10px] font-semibold tracking-[0.16em] text-[#8193A5]">TU MEJOR VERSIÓN</p>
@@ -146,12 +146,18 @@ export default function AuthPage() {
                     <Label htmlFor="password" className="text-xs font-bold uppercase tracking-[0.12em] text-[#9AAABB]">Contraseña</Label>
                     <div className="relative">
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#617384]" />
-                      <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 border-white/[0.08] bg-[#081119] pl-10 pr-12" required minLength={6} maxLength={128} />
+                      <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 border-white/[0.08] bg-[#081119] pl-10 pr-12" required minLength={isLogin ? 6 : 8} maxLength={128} />
                       <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-[#617384] transition hover:text-white">
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
+
+                  {!isLogin && (
+                    <p className="text-[11px] leading-5 text-[#8193A5]">
+                      Usá al menos 8 caracteres con mayúscula, minúscula y número.
+                    </p>
+                  )}
 
                   {error && <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.05] p-3 text-sm leading-5 text-red-200">{error}</div>}
                   {success && <div role="status" className="rounded-xl border border-primary/20 bg-primary/[0.05] p-3 text-sm leading-5 text-primary">{success}</div>}
