@@ -6,8 +6,11 @@
   --background: 8 17 25;
   --foreground: 248 250 252;
   --border: 28 49 66;
-  --brand-lime: #C6F91E;
-  --brand-lime-hover: #D8FF4A;
+  --brand-primary: #34D399;
+  --brand-primary-hover: #6EE7B7;
+  /* Compatibility aliases for older web components. */
+  --brand-lime: var(--brand-primary);
+  --brand-lime-hover: var(--brand-primary-hover);
   --brand-dark: #081119;
   --brand-elevated: #0B151E;
 }
@@ -30,12 +33,12 @@ body {
 button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 
 :focus-visible {
-  outline: 2px solid var(--brand-lime);
+  outline: 2px solid var(--brand-primary);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: rgb(198 249 30 / 0.22);
+  background: rgb(52 211 153 / 0.22);
   color: #ffffff;
 }
 
@@ -62,5 +65,5 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
     background-size: 48px 48px;
     mask-image: linear-gradient(to bottom, black, transparent 88%);
   }
-  .brand-glow { box-shadow: 0 0 60px rgb(198 249 30 / 0.08); }
+  .brand-glow { box-shadow: 0 0 60px rgb(52 211 153 / 0.08); }
 }
