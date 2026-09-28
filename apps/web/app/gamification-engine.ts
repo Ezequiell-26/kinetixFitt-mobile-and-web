@@ -85,6 +85,12 @@ export interface LeaderboardEntry {
   isCurrentUser: boolean;
 }
 
+const GAMIFICATION_STORAGE_PREFIX = 'kinetixfitt:gamification:';
+
+function canUseBrowserStorage(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
 export class GamificationEngine {
   private static instance: GamificationEngine;
   private progressCache: Map<string, UserProgress> = new Map();
@@ -314,6 +320,53 @@ export class GamificationEngine {
     this.generateLevelCurve();
   }
 
+  private persistProgress(progress: UserProgress): void {
+    this.progressCache.set(progress.userId, progress);
+    if (!canUseBrowserStorage()) return;
+    window.localStorage.setItem(
+      `${GAMIFICATION_STORAGE_PREFIX}${progress.userId}`,
+      JSON.stringify(progress),
+    );
+  }
+
+  private restoreProgress(userId: string): UserProgress | null {
+    if (this.progressCache.has(userId)) {
+      return this.progressCache.get(userId) ?? null;
+    }
+    if (!canUseBrowserStorage()) return null;
+
+    const raw = window.localStorage.getItem(`${GAMIFICATION_STORAGE_PREFIX}${userId}`);
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as UserProgress;
+      if (!parsed || parsed.userId !== userId || typeof parsed.xp !== 'number') {
+        return null;
+      }
+
+      parsed.achievements = Array.isArray(parsed.achievements)
+        ? parsed.achievements.map((achievement) => ({
+            ...achievement,
+            unlockedAt: achievement.unlockedAt
+              ? new Date(achievement.unlockedAt)
+              : undefined,
+          }))
+        : [];
+      parsed.badges = Array.isArray(parsed.badges)
+        ? parsed.badges.map((badge) => ({
+            ...badge,
+            earnedAt: badge.earnedAt ? new Date(badge.earnedAt) : undefined,
+          }))
+        : [];
+
+      this.progressCache.set(userId, parsed);
+      return parsed;
+    } catch {
+      window.localStorage.removeItem(`${GAMIFICATION_STORAGE_PREFIX}${userId}`);
+      return null;
+    }
+  }
+
   public static getInstance(): GamificationEngine {
     if (!GamificationEngine.instance) {
       GamificationEngine.instance = new GamificationEngine();
@@ -359,6 +412,9 @@ export class GamificationEngine {
    * Crea un nuevo usuario con progreso inicial
    */
   public createNewUser(userId: string): UserProgress {
+    const existing = this.restoreProgress(userId);
+    if (existing) return existing;
+
     const progress: UserProgress = {
       userId,
       level: 1,
@@ -375,7 +431,7 @@ export class GamificationEngine {
       gems: 10 // Bonus de bienvenida
     };
     
-    this.progressCache.set(userId, progress);
+    this.persistProgress(progress);
     return progress;
   }
 
@@ -387,9 +443,12 @@ export class GamificationEngine {
     leveledUp: boolean;
     xpGained: number;
   } {
-    const progress = this.progressCache.get(userId);
+    const progress = this.restoreProgress(userId);
     if (!progress) {
       throw new Error(`Usuario ${userId} no encontrado`);
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new Error('La cantidad de XP debe ser un número finito no negativo.');
     }
 
     const oldLevel = progress.level;
@@ -411,8 +470,8 @@ export class GamificationEngine {
       this.onLevelUp(userId, oldLevel, newLevel);
     }
 
-    this.progressCache.set(userId, progress);
-    
+    this.persistProgress(progress);
+
     return {
       newLevel: progress.level,
       leveledUp,
@@ -429,9 +488,18 @@ export class GamificationEngine {
     durationMinutes: number,
     effectiveness: number = 1
   ): { xpEarned: number; coinsEarned: number; newAchievements: Achievement[] } {
-    const progress = this.progressCache.get(userId);
+    const progress = this.restoreProgress(userId);
     if (!progress) {
       throw new Error(`Usuario ${userId} no encontrado`);
+    }
+    if (!Number.isFinite(caloriesBurned) || caloriesBurned < 0) {
+      throw new Error('Las calorías deben ser un número finito no negativo.');
+    }
+    if (!Number.isFinite(durationMinutes) || durationMinutes < 0) {
+      throw new Error('La duración debe ser un número finito no negativo.');
+    }
+    if (!Number.isFinite(effectiveness) || effectiveness < 0 || effectiveness > 1) {
+      throw new Error('La efectividad debe estar entre 0 y 1.');
     }
 
     // Actualizar estadísticas
@@ -446,8 +514,9 @@ export class GamificationEngine {
     const totalXP = Math.floor((baseXP + durationBonus) * effectivenessMultiplier);
     const coinsEarned = Math.floor(totalXP * 0.1);
 
-    // Agregar XP
+    // Agregar XP y monedas de la sesión.
     this.addXP(userId, totalXP, 'workout');
+    progress.coins += coinsEarned;
 
     // Actualizar racha
     this.updateStreak(userId);
@@ -466,7 +535,7 @@ export class GamificationEngine {
    * Actualiza la racha de días consecutivos
    */
   private updateStreak(userId: string): void {
-    const progress = this.progressCache.get(userId);
+    const progress = this.restoreProgress(userId);
     if (!progress) return;
 
     const today = new Date();
@@ -497,7 +566,7 @@ export class GamificationEngine {
     progress.longestStreak = Math.max(progress.longestStreak, progress.streak);
     localStorage.setItem(lastWorkoutKey, today.toISOString());
     
-    this.progressCache.set(userId, progress);
+    this.persistProgress(progress);
   }
 
   /**
@@ -505,77 +574,58 @@ export class GamificationEngine {
    */
   private checkAchievements(userId: string, progress: UserProgress): Achievement[] {
     const newAchievements: Achievement[] = [];
+    const unlockedIds = new Set(progress.achievements.map((achievement) => achievement.id));
 
-    for (const achievement of this.achievementsDB) {
-      if (achievement.unlocked) continue;
+    for (const definition of this.achievementsDB) {
+      if (unlockedIds.has(definition.id)) continue;
 
       let shouldUnlock = false;
       let currentProgress = 0;
 
-      switch (achievement.id) {
+      switch (definition.id) {
         case 'first_workout':
-          currentProgress = progress.totalWorkouts;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'workout_warrior':
-          currentProgress = progress.totalWorkouts;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'fitness_legend':
           currentProgress = progress.totalWorkouts;
-          shouldUnlock = currentProgress >= achievement.target;
+          shouldUnlock = currentProgress >= definition.target;
           break;
         case 'seven_day_streak':
-          currentProgress = progress.streak;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'thirty_day_streak':
-          currentProgress = progress.streak;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'year_master':
           currentProgress = progress.streak;
-          shouldUnlock = currentProgress >= achievement.target;
+          shouldUnlock = currentProgress >= definition.target;
           break;
         case 'calorie_burner':
-          currentProgress = progress.totalCaloriesBurned;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'calorie_destroyer':
           currentProgress = progress.totalCaloriesBurned;
-          shouldUnlock = currentProgress >= achievement.target;
+          shouldUnlock = currentProgress >= definition.target;
           break;
         case 'level_10':
-          currentProgress = progress.level;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'level_50':
-          currentProgress = progress.level;
-          shouldUnlock = currentProgress >= achievement.target;
-          break;
         case 'level_100':
           currentProgress = progress.level;
-          shouldUnlock = currentProgress >= achievement.target;
+          shouldUnlock = currentProgress >= definition.target;
           break;
       }
 
-      if (shouldUnlock) {
-        achievement.unlocked = true;
-        achievement.unlockedAt = new Date();
-        achievement.progress = achievement.target;
-        
-        // Agregar recompensas
-        progress.achievements.push(achievement);
-        this.addXP(userId, achievement.xpReward, `achievement:${achievement.id}`);
-        progress.coins += achievement.coinReward;
-        
-        newAchievements.push(achievement);
-      } else {
-        achievement.progress = currentProgress;
-      }
+      if (!shouldUnlock) continue;
+
+      const unlockedAchievement: Achievement = {
+        ...definition,
+        unlocked: true,
+        unlockedAt: new Date(),
+        progress: definition.target,
+      };
+
+      progress.achievements.push(unlockedAchievement);
+      unlockedIds.add(definition.id);
+
+      this.addXP(userId, definition.xpReward, `achievement:${definition.id}`);
+      progress.coins += definition.coinReward;
+      newAchievements.push(unlockedAchievement);
     }
 
-    this.progressCache.set(userId, progress);
+    this.persistProgress(progress);
     return newAchievements;
   }
 
@@ -584,7 +634,7 @@ export class GamificationEngine {
    */
   public generateMissions(userId: string, type: 'daily' | 'weekly' | 'monthly'): Mission[] {
     const missions: Mission[] = [];
-    const progress = this.progressCache.get(userId);
+    const progress = this.restoreProgress(userId);
     
     if (!progress) {
       throw new Error(`Usuario ${userId} no encontrado`);
@@ -675,7 +725,7 @@ export class GamificationEngine {
     ];
 
     if (userId) {
-      const progress = this.progressCache.get(userId);
+      const progress = this.restoreProgress(userId);
       if (progress) {
         const currentUserEntry: LeaderboardEntry = {
           rank: 999, // Se calcularía basado en todos los usuarios
@@ -719,20 +769,20 @@ export class GamificationEngine {
    * Obtiene el progreso de un usuario
    */
   public getUserProgress(userId: string): UserProgress | null {
-    return this.progressCache.get(userId) || null;
+    return this.restoreProgress(userId);
   }
 
   /**
    * Canjea monedas por recompensas
    */
   public redeemRewards(userId: string, rewardType: string, cost: number): boolean {
-    const progress = this.progressCache.get(userId);
+    const progress = this.restoreProgress(userId);
     if (!progress) return false;
 
     if (progress.coins >= cost) {
       progress.coins -= cost;
       console.log(`✅ ${userId} canjeó ${rewardType} por ${cost} monedas`);
-      this.progressCache.set(userId, progress);
+      this.persistProgress(progress);
       return true;
     }
 
@@ -755,8 +805,10 @@ export class GamificationEngine {
    * Importa estado de gamificación
    */
   public importState(state: any): void {
-    if (state.users) {
-      this.progressCache = new Map(state.users);
+    if (!state || !Array.isArray(state.users)) return;
+    this.progressCache = new Map(state.users);
+    for (const [, progress] of this.progressCache) {
+      this.persistProgress(progress);
     }
   }
 }
