@@ -6,6 +6,12 @@
 export type Locale = 'es' | 'en' | 'pt';
 
 export interface Translation {
+  nav: {
+    features: string;
+    plans: string;
+    download: string;
+    menu: string;
+  };
   common: {
     app: string;
     loading: string;
@@ -372,6 +378,12 @@ export interface Translation {
 
 export const translations: Record<Locale, Translation> = {
   es: {
+    nav: {
+      features: 'Funciones',
+      plans: 'Planes',
+      download: 'Descargar',
+      menu: 'Menú',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Cargando...',
@@ -736,6 +748,12 @@ export const translations: Record<Locale, Translation> = {
     },
   },
   en: {
+    nav: {
+      features: 'Features',
+      plans: 'Plans',
+      download: 'Download',
+      menu: 'Menu',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Loading...',
@@ -1100,6 +1118,12 @@ export const translations: Record<Locale, Translation> = {
     },
   },
   pt: {
+    nav: {
+      features: 'Recursos',
+      plans: 'Planos',
+      download: 'Baixar',
+      menu: 'Menu',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Carregando...',
