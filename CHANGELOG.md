@@ -11,6 +11,10 @@ Todas las versiones notables de KINETIXFITT.
 - Eliminados controles de demo que permitían fabricar XP o completar desafíos sin una actividad registrada.
 - Leaderboard global oculto cuando no existe una fuente persistente y aislada por usuario.
 
+### Gamificación basada en actividad real
+- `/api/workout-logs/summary` ahora expone agregados autorizados para logros y desafíos: sesiones, racha, volumen, fuerza, PRs, check-ins y ventanas semanal/mensual.
+- `useAchievements` hidrata el progreso desde ese contrato y limita el cache local por `user.id`.
+- Los logros ya no dependen de botones de prueba ni de una fuente global de `localStorage`.
 ### Gamificación y persistencia
 - Se aisló el estado de logros por usuario para evitar que un desbloqueo afecte a otras cuentas.
 - El progreso de XP, monedas, rachas y logros se restaura desde almacenamiento local cuando está disponible.
