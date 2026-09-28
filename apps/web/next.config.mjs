@@ -18,9 +18,8 @@ const nextConfig = {
   },
   transpilePackages: ['@kinetix/shared'],
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
+  serverExternalPackages: ['@prisma/client'],
+  outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
 };
 
 export default nextConfig;

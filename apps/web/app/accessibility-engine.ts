@@ -352,7 +352,11 @@ class AccessibilityEngine {
 
   public applySettings(settings: Partial<AccessibilitySettings>) {
     if (settings.highContrast !== undefined) {
-      settings.highContrast ? this.enableHighContrast() : this.disableHighContrast();
+      if (settings.highContrast) {
+        this.enableHighContrast();
+      } else {
+        this.disableHighContrast();
+      }
     }
 
     if (settings.largeText !== undefined) {
