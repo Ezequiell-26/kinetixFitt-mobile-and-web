@@ -6,6 +6,12 @@
 export type Locale = 'es' | 'en' | 'pt';
 
 export interface Translation {
+  nav: {
+    features: string;
+    plans: string;
+    download: string;
+    menu: string;
+  };
   common: {
     app: string;
     loading: string;
@@ -61,6 +67,9 @@ export interface Translation {
     yearsAgo: string;
   };
   auth: {
+    login: {
+      button: string;
+    };
     title: string;
     subtitle: string;
     emailLabel: string;
@@ -372,6 +381,12 @@ export interface Translation {
 
 export const translations: Record<Locale, Translation> = {
   es: {
+    nav: {
+      features: 'Funciones',
+      plans: 'Planes',
+      download: 'Descargar',
+      menu: 'Menú',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Cargando...',
@@ -427,6 +442,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: 'hace {years} años',
     },
     auth: {
+      login: {
+        button: 'Iniciar sesión',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Entrenamiento personalizado online',
       emailLabel: 'Email',
@@ -736,6 +754,12 @@ export const translations: Record<Locale, Translation> = {
     },
   },
   en: {
+    nav: {
+      features: 'Features',
+      plans: 'Plans',
+      download: 'Download',
+      menu: 'Menu',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Loading...',
@@ -791,6 +815,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: '{years} years ago',
     },
     auth: {
+      login: {
+        button: 'Log in',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Personalized online training',
       emailLabel: 'Email',
@@ -1100,6 +1127,12 @@ export const translations: Record<Locale, Translation> = {
     },
   },
   pt: {
+    nav: {
+      features: 'Recursos',
+      plans: 'Planos',
+      download: 'Baixar',
+      menu: 'Menu',
+    },
     common: {
       app: 'KINETIXFITT',
       loading: 'Carregando...',
@@ -1155,6 +1188,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: 'há {years} anos',
     },
     auth: {
+      login: {
+        button: 'Entrar',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Treinamento personalizado online',
       emailLabel: 'Email',

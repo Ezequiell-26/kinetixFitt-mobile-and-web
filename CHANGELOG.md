@@ -2,6 +2,41 @@
 
 Todas las versiones notables de KINETIXFITT.
 
+## [Unreleased]
+
+### Calidad de producto y verificación
+- Corregido el arranque de Playwright para reutilizar el servidor Next ya levantado por CI.
+- CI inicia explícitamente el servidor Next standalone generado por el build.
+- Agregadas las traducciones faltantes de navegación y login que generaban warnings en runtime.
+- Eliminados controles de demo que permitían fabricar XP o completar desafíos sin una actividad registrada.
+- Leaderboard global oculto cuando no existe una fuente persistente y aislada por usuario.
+
+### Gamificación basada en actividad real
+- `/api/workout-logs/summary` ahora expone agregados autorizados para logros y desafíos: sesiones, racha, volumen, fuerza, PRs, check-ins y ventanas semanal/mensual.
+- `useAchievements` hidrata el progreso desde ese contrato y limita el cache local por `user.id`.
+- Los logros ya no dependen de botones de prueba ni de una fuente global de `localStorage`.
+### Gamificación y persistencia
+- Se aisló el estado de logros por usuario para evitar que un desbloqueo afecte a otras cuentas.
+- El progreso de XP, monedas, rachas y logros se restaura desde almacenamiento local cuando está disponible.
+- Se corrigió la progresión inicial de niveles para evitar que una cuenta nueva retroceda de nivel con su primer XP.
+- Se agregaron validaciones de entrada para recompensas y finalización de entrenamientos.
+ - 2026-09-28
+
+### Mejorado
+- Alineación de branding móvil y compartido con el token semántico emerald `#34D399` ya definido por el design system.
+- Navegación, landing, botones, badges y estados de carga/error migrados desde acentos hardcodeados a tokens semánticos.
+- Soporte de WhatsApp convertido en configuración opcional mediante `NEXT_PUBLIC_WHATSAPP_NUMBER`; sin número configurado no se muestra ningún enlace de WhatsApp inválido.
+
+### Corregido
+- Eliminadas acciones sin comportamiento de Recursos VIP ("Ver" y "Guardar") que aparentaban estar implementadas.
+- El contador de recursos ahora refleja el catálogo realmente visible en pantalla en lugar de una cifra fija.
+- Añadido `rel="noreferrer"` y nombre accesible al enlace de WhatsApp.
+
+### Validación
+- Auditoría `npm run ai:audit` ejecutada en remoto: OK.
+- Instalación reproducible `npm ci` ejecutada en remoto: OK.
+- La validación de CI/Vercel queda pendiente sobre el PR #82; la conexión Vercel disponible actualmente no expone los proyectos para inspeccionar sus logs.
+
 ## [1.0.1] - 2026-09-10 — Lote 1: persistencia de programas y asignación
 
 ### Corregido
@@ -37,3 +72,4 @@ Todas las versiones notables de KINETIXFITT.
 
 ### Rendimiento
 - Build 102kB, Promise.all, debounce, índices, paginación
+

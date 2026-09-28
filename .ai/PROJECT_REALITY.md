@@ -144,3 +144,9 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 4. Falta terminar sincronización offline real y resolución de conflictos.
 5. Community, automatizaciones avanzadas y varias capacidades de IA siguen parciales.
 6. Native packaging y releases de stores siguen sin verificación end-to-end; esta optimización debe medirse con los artefactos generados en CI.
+
+
+### Supabase security state — 2026-09-28
+- Proyecto activo de producción: `kinetixfitt` (`xtvcgpeggfgyulagbjjk`), Postgres 17.6.1.
+- Se revocó `EXECUTE` de `public.rls_auto_enable()` para `PUBLIC`, `anon` y `authenticated` porque era una función `SECURITY DEFINER` expuesta vía RPC.
+- El advisor sigue reportando 24 tablas con RLS habilitado pero sin policies; no se aplicaron policies genéricas porque la aplicación usa identidad propia JWT/Prisma con CUIDs y roles CLIENT/TRAINER.

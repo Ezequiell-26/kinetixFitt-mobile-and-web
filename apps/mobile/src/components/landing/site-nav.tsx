@@ -16,8 +16,8 @@ export function SiteNav() {
     <header className="sticky top-0 z-50 border-b border-white/8 bg-[#09090B]/78 backdrop-blur-xl">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="group inline-flex min-h-11 items-center gap-2" aria-label={BRAND.name}>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#D6FF2A] text-sm font-black text-black shadow-[0_0_26px_rgba(214,255,42,.14)]">K</span>
-          <span className="text-[15px] font-black tracking-[-0.03em]">KINETIX<span className="text-[#D6FF2A]">FITT</span></span>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-sm font-black text-black shadow-[0_0_26px_rgb(var(--primary) / .14)]">K</span>
+          <span className="text-[15px] font-black tracking-[-0.03em]">KINETIX<span className="text-primary">FITT</span></span>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {links.map((l) => (
@@ -34,7 +34,7 @@ export function SiteNav() {
             </div>
           </details>
           <Link href="/login" className="ml-1 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.06]">{t('auth.login.button')}</Link>
-          <Link href="/register" className="hidden min-h-11 items-center justify-center rounded-full bg-[#D6FF2A] px-5 text-sm font-black text-black transition hover:bg-[#E0FF5A] sm:inline-flex">Empezar</Link>
+          <Link href="/register" className="hidden min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-black text-black transition hover:bg-primary-hover sm:inline-flex">Empezar</Link>
         </nav>
       </div>
     </header>

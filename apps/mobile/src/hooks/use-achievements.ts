@@ -16,9 +16,10 @@ import {
 /**
  * Estado del atleta en el sistema de gamificación.
  *
- * Por ahora usa un store local (localStorage) para persistir progreso
- * mientras no haya endpoints de XP en el backend. Cuando exista
- * `GET /api/me/gamification`, reemplazar load/save por fetch al API.
+ * El backend aporta agregados autorizados de actividad mediante
+ * `GET /api/workout-logs/summary`. localStorage solo conserva una copia
+ * de la presentación para tolerar recargas y no sustituye la identidad
+ * ni los datos de actividad del servidor.
  */
 export interface GamificationState {
   xp: number;
@@ -47,6 +48,10 @@ export interface GamificationState {
 
 const STORAGE_KEY = "ec_gamification_v1";
 
+function storageKeyForUser(userId: string): string {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
 const DEFAULT_STATE: GamificationState = {
   xp: 0,
   stats: {
@@ -72,22 +77,31 @@ const DEFAULT_STATE: GamificationState = {
   challengeProgress: {},
 };
 
-function loadState(): GamificationState {
+function loadState(userId: string): GamificationState {
   if (typeof window === "undefined") return DEFAULT_STATE;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKeyForUser(userId));
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed, stats: { ...DEFAULT_STATE.stats, ...(parsed.stats || {}) } };
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      stats: { ...DEFAULT_STATE.stats, ...(parsed.stats || {}) },
+      unlockedIds: Array.isArray(parsed.unlockedIds) ? parsed.unlockedIds : [],
+      challengeProgress:
+        parsed.challengeProgress && typeof parsed.challengeProgress === "object"
+          ? parsed.challengeProgress
+          : {},
+    };
   } catch {
     return DEFAULT_STATE;
   }
 }
 
-function saveState(state: GamificationState) {
+function saveState(userId: string, state: GamificationState) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(storageKeyForUser(userId), JSON.stringify(state));
   } catch {
     // Ignorar: storage lleno o bloqueado.
   }
@@ -106,16 +120,83 @@ export interface NewUnlock {
 export function useAchievements() {
   const [state, setState] = useState<GamificationState>(DEFAULT_STATE);
   const [pendingUnlocks, setPendingUnlocks] = useState<NewUnlock[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hidratación desde localStorage después del montaje.
+  // El backend es la fuente de identidad. La cookie httpOnly no es legible
+  // desde el cliente, por eso resolvemos el id vía /api/auth/me.
   useEffect(() => {
-    setState(loadState());
+    let cancelled = false;
+
+    async function hydrate() {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) {
+          if (!cancelled) setIsHydrated(true);
+          return;
+        }
+
+        const payload = (await response.json()) as { user?: { id?: string } | null };
+        const resolvedUserId = payload.user?.id;
+        if (!resolvedUserId) {
+          if (!cancelled) setIsHydrated(true);
+          return;
+        }
+
+        if (!cancelled) {
+          setUserId(resolvedUserId);
+          setState(loadState(resolvedUserId));
+          setIsHydrated(true);
+        }
+
+        const summaryResponse = await fetch("/api/workout-logs/summary", { cache: "no-store" });
+        if (!summaryResponse.ok || cancelled) return;
+
+        const summaryPayload = (await summaryResponse.json()) as {
+          gamification?: Partial<GamificationState["stats"]>;
+        };
+        const remoteStats = summaryPayload.gamification;
+        if (!remoteStats || cancelled) return;
+
+        setState((prev) => {
+          const stats = { ...prev.stats, ...remoteStats };
+          const unlockedIds = ACHIEVEMENTS
+            .filter((achievement) => {
+              const current = (stats as Record<string, number>)[achievement.requirement.type] ?? 0;
+              return current >= achievement.requirement.value;
+            })
+            .map((achievement) => achievement.id);
+
+          const xp = unlockedIds.reduce((total, id) => {
+            const achievement = ACHIEVEMENTS.find((item) => item.id === id);
+            return total + (achievement?.xp ?? 0);
+          }, 0);
+
+          return {
+            ...prev,
+            stats,
+            unlockedIds,
+            xp,
+            challengeProgress: {},
+          };
+        });
+      } catch {
+        if (!cancelled) setIsHydrated(true);
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Persistir cambios.
+  // Persistir únicamente después de resolver la identidad para impedir
+  // fugas de progreso entre cuentas del mismo navegador.
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    if (!userId || !isHydrated) return;
+    saveState(userId, state);
+  }, [isHydrated, state, userId]);
 
   /**
    * Logros con el progreso actual calculado desde stats.
@@ -224,30 +305,6 @@ export function useAchievements() {
   );
 
   /**
-   * Marca un challenge como completado manualmente y otorga XP.
-   */
-  const completeChallenge = useCallback((challengeId: string) => {
-    setState((prev) => {
-      const all = [...WEEKLY_CHALLENGES, ...MONTHLY_CHALLENGES];
-      const target = all.find((c) => c.id === challengeId);
-      if (!target) return prev;
-
-      const current =
-        prev.challengeProgress[challengeId] ??
-        ((prev.stats as Record<string, number>)[target.requirement.type] ?? 0);
-
-      if (current >= target.requirement.value) return prev; // ya completado
-
-      const nextProgress = { ...prev.challengeProgress, [challengeId]: target.requirement.value };
-      return {
-        ...prev,
-        challengeProgress: nextProgress,
-        xp: prev.xp + target.xp,
-      };
-    });
-  }, []);
-
-  /**
    * Descarta la notificación de logro más antigua (FIFO).
    */
   const dismissUnlock = useCallback(() => {
@@ -287,7 +344,6 @@ export function useAchievements() {
     filters,
     pendingUnlocks,
     incrementStat,
-    completeChallenge,
     dismissUnlock,
   };
 }

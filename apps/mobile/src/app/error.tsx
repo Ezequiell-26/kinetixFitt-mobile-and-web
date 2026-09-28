@@ -25,7 +25,7 @@ export default function Error({
         <pre className="max-w-full overflow-auto rounded-xl border border-[#1C3142] bg-[#081119] p-3 text-left text-[11px] text-zinc-500">{error.message}</pre>
       )}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <button onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#C6F91E] px-5 text-sm font-black text-[#081119] transition hover:bg-[#D8FF4A]">
+        <button onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black text-[#081119] transition hover:bg-primary-hover">
           <RefreshCw size={15} /> Reintentar
         </button>
         <Link href="/" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#1C3142] bg-[#0B151E] px-5 text-sm font-bold text-white transition hover:border-primary/30">

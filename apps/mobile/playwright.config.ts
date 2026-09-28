@@ -29,7 +29,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3001',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120 * 1000,
     env: {
       // JWT_SECRET mínimo 32 chars – el mismo usado en dev para que jose no use efímero aleatorio
