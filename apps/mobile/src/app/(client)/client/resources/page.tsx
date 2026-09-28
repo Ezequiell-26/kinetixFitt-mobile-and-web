@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 
 const resources = [
   {id:"1", title:"Guía de Técnica: Sentadilla Perfecta", type:"Video", duration:"8 min", premium:true, thumb:"/exercises/free/Barbell_Bench_Press_-_Medium_Grip.webp"},
@@ -13,6 +14,7 @@ const resources = [
 ];
 
 export default function ResourcesPage(){
+  const whatsappHref = getWhatsAppHref("Hola KinetixFitt, necesito ayuda con mis recursos.");
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-start">
@@ -23,7 +25,7 @@ export default function ResourcesPage(){
       <Card className="bg-gradient-to-br from-primary/10 to-zinc-900 border-primary/20">
         <CardContent className="pt-4 flex gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-black"><Star size={20} fill="currentColor" /></div>
-          <div><p className="font-bold">Acceso VIP completo</p><p className="text-xs text-zinc-500">12 recursos • nuevos cada semana • solo para clientes Premium/Personalizado</p></div>
+          <div><p className="font-bold">Acceso VIP completo</p><p className="text-xs text-zinc-500">{resources.length} recursos visibles • catálogo actual • acceso según tu plan</p></div>
         </CardContent>
       </Card>
 
@@ -37,7 +39,7 @@ export default function ResourcesPage(){
               <div className="flex-1 min-w-0">
                 <div className="flex gap-2 items-center"><Badge variant={r.premium?"accent":"muted"}>{r.type}</Badge><span className="text-xs text-zinc-500">{r.duration}</span>{r.premium && <span className="text-xs text-primary">• VIP</span>}</div>
                 <p className="font-semibold text-sm mt-1 line-clamp-2">{r.title}</p>
-                <div className="flex gap-2 mt-2"><Button variant="outline" size="sm" className="h-7 text-xs">Ver</Button><Button variant="ghost" size="sm" className="h-7 text-xs">Guardar</Button></div>
+                <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-zinc-500"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-zinc-600" />Contenido en preparación</div>
               </div>
             </div>
           </Card>
@@ -48,7 +50,7 @@ export default function ResourcesPage(){
         <CardHeader><CardTitle>¿Necesitás ayuda?</CardTitle></CardHeader>
         <CardContent className="flex gap-2">
           <Link href="/client/messages" className="flex-1"><Button variant="accent" className="w-full">Chatear con tu coach</Button></Link>
-          <a href="https://wa.me/5490000000000" target="_blank" className="flex-1"><Button variant="outline" className="w-full">WhatsApp</Button></a>
+          {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noreferrer" className="flex-1"><Button variant="outline" className="w-full">WhatsApp</Button></a> : null}
         </CardContent>
       </Card>
     </div>
