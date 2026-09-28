@@ -311,7 +311,6 @@ export function useAchievements() {
     filters,
     pendingUnlocks,
     incrementStat,
-    completeChallenge,
     dismissUnlock,
   };
 }
