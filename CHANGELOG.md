@@ -1,3 +1,12 @@
+## [Unreleased]
+
+### Calidad de producto y verificación
+- Corregido el arranque de Playwright para reutilizar el servidor Next ya levantado por CI.
+- CI inicia explícitamente el servidor Next standalone generado por el build.
+- Agregadas las traducciones faltantes de navegación y login que generaban warnings en runtime.
+- Eliminados controles de demo que permitían fabricar XP o completar desafíos sin una actividad registrada.
+- Leaderboard global oculto cuando no existe una fuente persistente y aislada por usuario.
+
 # Changelog
 
 Todas las versiones notables de KINETIXFITT.
