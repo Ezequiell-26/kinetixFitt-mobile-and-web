@@ -16,9 +16,10 @@ import {
 /**
  * Estado del atleta en el sistema de gamificación.
  *
- * Por ahora usa un store local (localStorage) para persistir progreso
- * mientras no haya endpoints de XP en el backend. Cuando exista
- * `GET /api/me/gamification`, reemplazar load/save por fetch al API.
+ * El backend aporta agregados autorizados de actividad mediante
+ * `GET /api/workout-logs/summary`. localStorage solo conserva una copia
+ * de la presentación para tolerar recargas y no sustituye la identidad
+ * ni los datos de actividad del servidor.
  */
 export interface GamificationState {
   xp: number;
@@ -147,6 +148,38 @@ export function useAchievements() {
           setState(loadState(resolvedUserId));
           setIsHydrated(true);
         }
+
+        const summaryResponse = await fetch("/api/workout-logs/summary", { cache: "no-store" });
+        if (!summaryResponse.ok || cancelled) return;
+
+        const summaryPayload = (await summaryResponse.json()) as {
+          gamification?: Partial<GamificationState["stats"]>;
+        };
+        const remoteStats = summaryPayload.gamification;
+        if (!remoteStats || cancelled) return;
+
+        setState((prev) => {
+          const stats = { ...prev.stats, ...remoteStats };
+          const unlockedIds = ACHIEVEMENTS
+            .filter((achievement) => {
+              const current = stats[achievement.requirement.type] ?? 0;
+              return current >= achievement.requirement.value;
+            })
+            .map((achievement) => achievement.id);
+
+          const xp = unlockedIds.reduce((total, id) => {
+            const achievement = ACHIEVEMENTS.find((item) => item.id === id);
+            return total + (achievement?.xp ?? 0);
+          }, 0);
+
+          return {
+            ...prev,
+            stats,
+            unlockedIds,
+            xp,
+            challengeProgress: {},
+          };
+        });
       } catch {
         if (!cancelled) setIsHydrated(true);
       }
