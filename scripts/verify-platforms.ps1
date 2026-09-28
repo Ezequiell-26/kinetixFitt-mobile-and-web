@@ -1,8 +1,8 @@
-# KinetixFitt multiplatform verification
+﻿# KinetixFitt multiplatform verification
 # Run from repository root: npm -w apps/mobile run verify
 param([ValidateSet("all","windows","macos","android","ios")][string]$Platform = "all")
 $ErrorActionPreference = "Stop"
-$root = (Get-Location).Path
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $mobile = Join-Path $root "apps/mobile"
 $desktop = Join-Path $root "apps/desktop"
 $script:errors = @()
@@ -12,7 +12,7 @@ $script:success = @()
 function Ok($m) { $script:success += $m; Write-Host "[OK] $m" -ForegroundColor Green }
 function Warn($m) { $script:warnings += $m; Write-Host "[WARN] $m" -ForegroundColor Yellow }
 function Fail($m) { $script:errors += $m; Write-Host "[FAIL] $m" -ForegroundColor Red }
-function Exists($p,$label) { if (Test-Path $p) { Ok $label; return $true } Fail "$label — falta $p"; return $false }
+function Exists($p,$label) { if (Test-Path $p) { Ok $label; return } Fail "$label - missing $p" }
 
 Write-Host "`n=== KINETIXFITT MULTIPLATFORM ===`nPlatform: $Platform`n" -ForegroundColor Cyan
 
@@ -87,8 +87,8 @@ if (Test-Path $manifestPath) {
 
 # Local runtime prerequisites only; CI performs actual platform builds.
 if (Get-Command node -ErrorAction SilentlyContinue) { Ok "Node.js available" } else { Fail "Node.js unavailable" }
-if (Get-Command rustc -ErrorAction SilentlyContinue) { Ok "Rust compiler available" } else { Warn "Rust compiler unavailable — required for Tauri desktop builds" }
-if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing — run npm ci" }
+if (Get-Command rustc -ErrorAction SilentlyContinue) { Ok "Rust compiler available" } else { Warn "Rust compiler unavailable - required for Tauri desktop builds" }
+if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing - run npm ci" }
 
 Write-Host "`n--- SUMMARY ---" -ForegroundColor Cyan
 Write-Host "Success: $($script:success.Count)" -ForegroundColor Green

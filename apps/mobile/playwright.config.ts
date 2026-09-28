@@ -15,10 +15,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: 'http://127.0.0.1:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    serviceWorkers: 'block',
   },
   projects: [
     {
@@ -28,8 +29,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3001',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://127.0.0.1:3001',
+    // Reutiliza un servidor ya levantado (CI) y evita conflictos cuando el entorno ya está servido.
+    reuseExistingServer: true,
     timeout: 120 * 1000,
     env: {
       // JWT_SECRET mínimo 32 chars – el mismo usado en dev para que jose no use efímero aleatorio
