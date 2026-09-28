@@ -116,7 +116,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          nohup npm run start -w apps/mobile > "$RUNNER_TEMP/kinetix-next.log" 2>&1 &
+          nohup env PORT=3001 HOSTNAME=127.0.0.1 node apps/mobile/.next/standalone/server.js > "$RUNNER_TEMP/kinetix-next.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/kinetix-next.pid"
           for i in {1..60}; do
             if curl --fail --silent --show-error http://127.0.0.1:3001/api/health >/dev/null; then
