@@ -390,12 +390,13 @@ export class GamificationEngine {
    * Calcula el nivel actual basado en el XP total
    */
   public calculateLevel(totalXP: number): number {
-    for (let i = this.levelCurve.length - 1; i >= 0; i--) {
-      if (totalXP >= this.levelCurve[i]) {
+    const safeXP = Number.isFinite(totalXP) ? Math.max(0, totalXP) : 0;
+    for (let i = this.levelCurve.length - 1; i >= 1; i--) {
+      if (safeXP >= this.levelCurve[i]) {
         return i;
       }
     }
-    return 0;
+    return 1;
   }
 
   /**
@@ -541,8 +542,13 @@ export class GamificationEngine {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    if (!canUseBrowserStorage()) {
+      this.persistProgress(progress);
+      return;
+    }
+
     const lastWorkoutKey = `last_workout_${userId}`;
-    const lastWorkoutDate = localStorage.getItem(lastWorkoutKey);
+    const lastWorkoutDate = window.localStorage.getItem(lastWorkoutKey);
     
     if (lastWorkoutDate) {
       const lastDate = new Date(lastWorkoutDate);
@@ -564,7 +570,7 @@ export class GamificationEngine {
     }
 
     progress.longestStreak = Math.max(progress.longestStreak, progress.streak);
-    localStorage.setItem(lastWorkoutKey, today.toISOString());
+    window.localStorage.setItem(lastWorkoutKey, today.toISOString());
     
     this.persistProgress(progress);
   }
