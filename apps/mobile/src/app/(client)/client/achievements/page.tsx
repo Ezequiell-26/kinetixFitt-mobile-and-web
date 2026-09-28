@@ -41,7 +41,6 @@ export default function AchievementsPage() {
     xpForNext,
     stats,
     pendingUnlocks,
-    incrementStat,
     dismissUnlock,
   } = useAchievements();
 
