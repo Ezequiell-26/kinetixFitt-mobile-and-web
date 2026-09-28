@@ -25,9 +25,9 @@ export function Button({ className, variant = "default", size = "md", ...props }
       "hover:-translate-y-px",
     ghost: "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04] rounded-xl",
     outline:
-      "border border-[#1C3142] text-zinc-100 hover:bg-white/[0.035] hover:border-white/[0.12] rounded-xl bg-transparent",
+      "border-subtle text-zinc-100 hover:bg-white/[0.035] hover:border-white/[0.12] rounded-xl bg-transparent",
     success:
-      "bg-[#C6F91E] text-[#081119] font-bold hover:bg-[#D8FF4A] rounded-2xl " +
+      "bg-primary text-[#081119] font-bold hover:bg-primary-hover rounded-2xl " +
       "shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_6px_24px_rgb(var(--primary) / 0.16)]",
     danger:
       "bg-red-500/10 text-red-300 border border-red-500/25 hover:bg-red-500/20 hover:border-red-500/40 rounded-xl font-bold",
