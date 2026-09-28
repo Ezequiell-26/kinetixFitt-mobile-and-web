@@ -7,8 +7,8 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_auto] lg:px-8">
         <div>
           <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-black text-white">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#D6FF2A] text-xs text-black">K</span>
-            KINETIX<span className="text-[#D6FF2A]">FITT</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-xs text-black">K</span>
+            KINETIX<span className="text-primary">FITT</span>
           </Link>
           <p className="mt-3 max-w-md text-sm leading-6 text-zinc-500">Entrenamiento, nutrición, recuperación y seguimiento en una sola experiencia.</p>
         </div>
@@ -17,7 +17,7 @@ export function SiteFooter() {
           <Link href="/planes" className="min-h-10 inline-flex items-center text-zinc-400 transition hover:text-white">Planes</Link>
           <Link href="/descargar" className="min-h-10 inline-flex items-center text-zinc-400 transition hover:text-white">Descargar</Link>
           <Link href="/login" className="min-h-10 inline-flex items-center text-zinc-400 transition hover:text-white">Ingresar</Link>
-          <Link href="/register" className="min-h-10 inline-flex items-center font-bold text-[#D6FF2A] transition hover:text-[#E0FF5A]">Crear cuenta</Link>
+          <Link href="/register" className="min-h-10 inline-flex items-center font-bold text-primary transition hover:text-primary-hover">Crear cuenta</Link>
         </nav>
       </div>
       <div className="border-t border-white/6">
