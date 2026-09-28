@@ -158,7 +158,7 @@ export default function Home() {
             </div>
             <div className="mx-auto mt-10 grid max-w-6xl gap-4 lg:grid-cols-3">
               {plans.map((plan) => (
-                <article key={plan.name} className={`relative rounded-3xl border p-6 sm:p-7 ${plan.highlight ? "border-[#D6FF2A]/50 bg-primary/[0.055] shadow-[0_24px_80px_rgb(var(--primary)/.06)]" : "border-white/8 bg-[#0C0C0F]"}`}>
+                <article key={plan.name} className={`relative rounded-3xl border p-6 sm:p-7 ${plan.highlight ? "border-primary/50 bg-primary/[0.055] shadow-[0_24px_80px_rgb(var(--primary)/.06)]" : "border-white/8 bg-[#0C0C0F]"}`}>
                   {plan.highlight && <div className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-black">Recomendado</div>}
                   <h3 className="text-xl font-black">{plan.name}</h3>
                   <p className="mt-2 text-sm text-zinc-500">{plan.desc}</p>
