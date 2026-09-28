@@ -67,6 +67,9 @@ export interface Translation {
     yearsAgo: string;
   };
   auth: {
+    login: {
+      button: string;
+    };
     title: string;
     subtitle: string;
     emailLabel: string;
@@ -439,6 +442,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: 'hace {years} años',
     },
     auth: {
+      login: {
+        button: 'Iniciar sesión',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Entrenamiento personalizado online',
       emailLabel: 'Email',
@@ -809,6 +815,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: '{years} years ago',
     },
     auth: {
+      login: {
+        button: 'Log in',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Personalized online training',
       emailLabel: 'Email',
@@ -1179,6 +1188,9 @@ export const translations: Record<Locale, Translation> = {
       yearsAgo: 'há {years} anos',
     },
     auth: {
+      login: {
+        button: 'Entrar',
+      },
       title: 'KINETIXFITT',
       subtitle: 'Treinamento personalizado online',
       emailLabel: 'Email',
