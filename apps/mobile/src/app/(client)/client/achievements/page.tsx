@@ -5,7 +5,7 @@ import {
   AchievementUnlockNotification,
   AchievementStats,
 } from "@/components/achievements-display";
-import { useAchievements, type NewUnlock } from "@/hooks/use-achievements";
+import { useAchievements } from "@/hooks/use-achievements";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy,
