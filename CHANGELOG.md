@@ -2,7 +2,14 @@
 
 Todas las versiones notables de KINETIXFITT.
 
-## [Unreleased] - 2026-09-28
+## [Unreleased]
+
+### Gamificación y persistencia
+- Se aisló el estado de logros por usuario para evitar que un desbloqueo afecte a otras cuentas.
+- El progreso de XP, monedas, rachas y logros se restaura desde almacenamiento local cuando está disponible.
+- Se corrigió la progresión inicial de niveles para evitar que una cuenta nueva retroceda de nivel con su primer XP.
+- Se agregaron validaciones de entrada para recompensas y finalización de entrenamientos.
+ - 2026-09-28
 
 ### Mejorado
 - Alineación de branding móvil y compartido con el token semántico emerald `#34D399` ya definido por el design system.
