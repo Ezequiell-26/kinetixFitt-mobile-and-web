@@ -721,32 +721,22 @@ export class GamificationEngine {
    * Obtiene tabla de clasificación global
    */
   public async getLeaderboard(limit: number = 10, userId?: string): Promise<LeaderboardEntry[]> {
-    // Simulación de leaderboard - en producción esto vendría de una API
-    const mockUsers: LeaderboardEntry[] = [
-      { rank: 1, userId: 'u1', username: 'FitnessKing', level: 87, xp: 450000, trophies: 156, isCurrentUser: false },
-      { rank: 2, userId: 'u2', username: 'GymQueen', level: 82, xp: 420000, trophies: 142, isCurrentUser: false },
-      { rank: 3, userId: 'u3', username: 'IronWarrior', level: 79, xp: 390000, trophies: 138, isCurrentUser: false },
-      { rank: 4, userId: 'u4', username: 'CardioMaster', level: 75, xp: 360000, trophies: 125, isCurrentUser: false },
-      { rank: 5, userId: 'u5', username: 'YogaZen', level: 71, xp: 330000, trophies: 118, isCurrentUser: false },
-    ];
+    // No inventar posiciones globales. Hasta disponer de una fuente persistente
+    // y aislada por usuario, solo devolvemos la posición local conocida.
+    if (!userId) return [];
 
-    if (userId) {
-      const progress = this.restoreProgress(userId);
-      if (progress) {
-        const currentUserEntry: LeaderboardEntry = {
-          rank: 999, // Se calcularía basado en todos los usuarios
-          userId,
-          username: 'Tú',
-          level: progress.level,
-          xp: progress.xp,
-          trophies: progress.achievements.length,
-          isCurrentUser: true
-        };
-        mockUsers.push(currentUserEntry);
-      }
-    }
+    const progress = this.restoreProgress(userId);
+    if (!progress) return [];
 
-    return mockUsers.slice(0, limit);
+    return [{
+      rank: progress.rank || 0,
+      userId,
+      username: 'Tú',
+      level: progress.level,
+      xp: progress.xp,
+      trophies: progress.achievements.length,
+      isCurrentUser: true,
+    }].slice(0, Math.max(0, limit));
   }
 
   /**
