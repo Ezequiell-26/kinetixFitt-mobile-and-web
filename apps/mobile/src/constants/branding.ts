@@ -7,8 +7,9 @@ export const BRAND = {
   shortName: "KinetixFitt",
   tagline: "TU MEJOR VERSIÓN",
   colors: {
-    lime: "#C6F91E",
-    limeHover: "#D8FF4A",
+    // `lime` naming is retained as a compatibility alias; the canonical accent is emerald.
+    lime: "#34D399",
+    limeHover: "#6EE7B7",
     dark: "#081119",
     darkElevated: "#0B151E",
     zinc: "#12212D",
@@ -26,8 +27,8 @@ export const BRAND = {
 } as const;
 
 export const BRAND_TOKENS = {
-  bgLime: "bg-[#C6F91E]",
-  textLime: "text-[#C6F91E]",
-  borderLime: "border-[#C6F91E]",
+  bgLime: "bg-primary",
+  textLime: "text-primary",
+  borderLime: "border-primary",
   bgDark: "bg-[#081119]",
 } as const;
