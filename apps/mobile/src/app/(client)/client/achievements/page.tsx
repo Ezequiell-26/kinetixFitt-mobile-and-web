@@ -13,7 +13,6 @@ import {
   Target,
   Star,
   Zap,
-  ChevronRight,
   Calendar,
   TrendingUp,
 } from "lucide-react";
@@ -43,7 +42,6 @@ export default function AchievementsPage() {
     stats,
     pendingUnlocks,
     incrementStat,
-    completeChallenge,
     dismissUnlock,
   } = useAchievements();
 
@@ -55,11 +53,6 @@ export default function AchievementsPage() {
       : achievements.filter((a) => a.category === filter);
 
   const current = pendingUnlocks[0];
-
-  // Helpers para el modo demo: botones para subir XP rápidamente
-  const addWorkout = () => incrementStat("workouts_completed", 1);
-  const addVolume = () => incrementStat("total_volume_kg", 2500);
-  const addCheckin = () => incrementStat("checkins_sent", 1);
 
   return (
     <div className="max-w-[1100px] mx-auto space-y-8">
@@ -101,35 +94,6 @@ export default function AchievementsPage() {
         </div>
       </div>
 
-      {/* Quick XP buttons (demo / testing) */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.15 }}
-        className="flex flex-wrap gap-2 p-4 rounded-2xl border border-zinc-800 bg-zinc-900/30"
-      >
-        <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mr-2 self-center">
-          Probar logros:
-        </p>
-        <button
-          onClick={addWorkout}
-          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition"
-        >
-          +1 Entrenamiento
-        </button>
-        <button
-          onClick={addVolume}
-          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition"
-        >
-          +2,500 kg Volumen
-        </button>
-        <button
-          onClick={addCheckin}
-          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition"
-        >
-          +1 Check-in
-        </button>
-      </motion.div>
 
       {/* Challenges */}
       <section className="space-y-4">
@@ -216,14 +180,7 @@ export default function AchievementsPage() {
                           ? "✓ Completado"
                           : `${daysLeft} día${daysLeft === 1 ? "" : "s"} restantes`}
                       </span>
-                      {!challenge.completed && (
-                        <button
-                          onClick={() => completeChallenge(challenge.id)}
-                          className="text-[11px] font-bold text-primary hover:text-primary/80 transition flex items-center gap-1"
-                        >
-                          Marcar completo <ChevronRight size={12} />
-                        </button>
-                      )}
+
                     </div>
                   </div>
                 </div>
