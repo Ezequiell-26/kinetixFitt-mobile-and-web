@@ -50,65 +50,6 @@ type WorkoutTemplate = {
 
 type PrRecord = { exerciseName: string; weight: number; reps: number; oneRM: number; date: string };
 
-const MOCK_TEMPLATES: WorkoutTemplate[] = [
-  {
-    id: "push",
-    name: "Push — Pecho/Hombro/Tríceps",
-    folder: "Fuerza",
-    color: "var(--primary)",
-    lastUsed: "Hace 2 días",
-    exercises: [
-      { id: "e1", name: "Press Banca", muscleGroup: "chest", sets: 4, reps: "6-8", weight: 80, restSec: 120 },
-      { id: "e2", name: "Press Militar", muscleGroup: "shoulders", sets: 3, reps: "8-10", weight: 45, restSec: 90 },
-      { id: "e3", name: "Fondos en Paralelas", muscleGroup: "chest", sets: 3, reps: "10-12", weight: 0, restSec: 90, superset: false },
-      { id: "e4", name: "Elevaciones Laterales", muscleGroup: "shoulders", sets: 3, reps: "12-15", weight: 12, restSec: 60 },
-    ],
-  },
-  {
-    id: "pull",
-    name: "Pull — Espalda/Bíceps",
-    folder: "Fuerza",
-    color: "#a855f7",
-    lastUsed: "Hace 5 días",
-    exercises: [
-      { id: "e5", name: "Dominadas", muscleGroup: "back", sets: 4, reps: "6-8", weight: 0, restSec: 120 },
-      { id: "e6", name: "Remo con Barra", muscleGroup: "back", sets: 4, reps: "8-10", weight: 70, restSec: 120 },
-      { id: "e7", name: "Curl Barra", muscleGroup: "arms", sets: 3, reps: "8-12", weight: 35, restSec: 90, superset: true, note: "Superset con Face Pull" },
-      { id: "e8", name: "Face Pull", muscleGroup: "shoulders", sets: 3, reps: "12-15", weight: 25, restSec: 60, superset: true },
-    ],
-  },
-  {
-    id: "legs",
-    name: "Legs — Cuádriceps/Glúteo",
-    folder: "Fuerza",
-    color: "#22c55e",
-    lastUsed: "Hoy",
-    exercises: [
-      { id: "e9", name: "Sentadilla", muscleGroup: "legs", sets: 4, reps: "5", weight: 100, restSec: 180 },
-      { id: "e10", name: "Peso Muerto Rumano", muscleGroup: "legs", sets: 3, reps: "8-10", weight: 80, restSec: 120 },
-      { id: "e11", name: "Bulgarian Split", muscleGroup: "legs", sets: 3, reps: "10", weight: 20, restSec: 90 },
-    ],
-  },
-  {
-    id: "full",
-    name: "Full Body A",
-    folder: "Plantillas",
-    color: "#f97316",
-    lastUsed: "Hace 1 semana",
-    exercises: [
-      { id: "e12", name: "Sentadilla", muscleGroup: "legs", sets: 3, reps: "5", weight: 90, restSec: 120 },
-      { id: "e13", name: "Press Banca", muscleGroup: "chest", sets: 3, reps: "6-8", weight: 75, restSec: 120 },
-      { id: "e14", name: "Remo Gironda", muscleGroup: "back", sets: 3, reps: "8-10", weight: 65, restSec: 90 },
-    ],
-  },
-];
-
-const MOCK_PRS: PrRecord[] = [
-  { exerciseName: "Press Banca", weight: 80, reps: 8, oneRM: 80 * (1 + 8 / 30), date: "2026-09-01" },
-  { exerciseName: "Sentadilla", weight: 100, reps: 5, oneRM: 100 * (1 + 5 / 30), date: "2026-09-03" },
-  { exerciseName: "Peso Muerto Rumano", weight: 80, reps: 10, oneRM: 80 * (1 + 10 / 30), date: "2026-08-28" },
-];
-
 function epley(w: number, r: number) {
   return w * (1 + r / 30);
 }
@@ -119,7 +60,43 @@ function beep(freq = 880, dur = 0.22) {
     const ctx = new Ctx();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    o.type = "sine";
+    o.type type ApiProgram = {
+  id: string;
+  name: string;
+  weeks: Array<{
+    weekNumber: number;
+    workouts: Array<{
+      id: string;
+      name: string;
+      estimatedMin: number;
+      exercises: Array<{
+        id: string;
+        sets: number;
+        reps: string;
+        restSec: number;
+        load?: string | null;
+        notes?: string | null;
+        supersetGroup?: string | null;
+        exercise: { id: string; name: string; muscleGroup: string };
+      }>;
+    }>;
+  }>;
+};
+
+type ApiWorkoutLog = {
+  workoutId?: string | null;
+  workoutName?: string | null;
+  date: string;
+  sets: Array<{ exerciseName: string; weight?: number | null; reps?: number | null }>;
+};
+
+function parseLoad(value: string | null | undefined): number {
+  if (!value) return 0;
+  const match = value.replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+};
+
+= "sine";
     o.frequency.setValueAtTime(freq, ctx.currentTime);
     g.gain.setValueAtTime(0.14, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
@@ -131,7 +108,7 @@ function beep(freq = 880, dur = 0.22) {
 }
 
 export function StrongTemplate() {
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>(MOCK_TEMPLATES);
+  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [folder, setFolder] = useState<string>("Todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -142,12 +119,89 @@ export function StrongTemplate() {
   const [restRem, setRestRem] = useState(0);
   const [isResting, setIsResting] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [prs, setPrs] = useState<PrRecord[]>(MOCK_PRS);
+  const [prs, setPrs] = useState<PrRecord[]>([]);
   const [lastPr, setLastPr] = useState<PrRecord | null>(null);
   const [logged, setLogged] = useState<Record<string, { w: number; r: number }>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showPrAnim, setShowPrAnim] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const workoutStartedAtRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRealData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [programResponse, logsResponse] = await Promise.all([
+          fetch("/api/programs", { cache: "no-store" }),
+          fetch("/api/workout-logs?limit=100", { cache: "no-store" }),
+        ]);
+        const programPayload = await programResponse.json().catch(() => []);
+        const logsPayload = await logsResponse.json().catch(() => []);
+        if (!programResponse.ok) throw new Error(programPayload?.error || "No se pudo cargar tu programa.");
+        if (!logsResponse.ok) throw new Error(logsPayload?.error || "No se pudo cargar tu historial.");
+
+        const program = Array.isArray(programPayload) ? (programPayload[0] as ApiProgram | undefined) : undefined;
+        const logs = Array.isArray(logsPayload) ? (logsPayload as ApiWorkoutLog[]) : [];
+        if (cancelled) return;
+
+        const mapped: WorkoutTemplate[] = (program?.weeks || []).flatMap((week) =>
+          week.workouts.map((workout) => ({
+            id: workout.id,
+            name: workout.name,
+            folder: `Semana ${week.weekNumber}`,
+            color: "var(--primary)",
+            lastUsed: logs.find((log) => log.workoutId === workout.id)?.date
+              ? new Date(logs.find((log) => log.workoutId === workout.id)!.date).toLocaleDateString("es-AR")
+              : "Sin registrar",
+            exercises: workout.exercises.map((item) => ({
+              id: item.id,
+              name: item.exercise.name,
+              muscleGroup: item.exercise.muscleGroup,
+              sets: item.sets,
+              reps: item.reps,
+              weight: parseLoad(item.load),
+              restSec: item.restSec,
+              superset: Boolean(item.supersetGroup),
+              note: item.notes || undefined,
+            })),
+          }))
+        );
+
+        const bestByExercise = new Map<string, PrRecord>();
+        for (const log of logs) {
+          for (const set of log.sets || []) {
+            const w = Number(set.weight);
+            const r = Number(set.reps);
+            if (!Number.isFinite(w) || !Number.isFinite(r) || w <= 0 || r <= 0) continue;
+            const oneRM = epley(w, r);
+            const current = bestByExercise.get(set.exerciseName);
+            if (!current || oneRM > current.oneRM) {
+              bestByExercise.set(set.exerciseName, {
+                exerciseName: set.exerciseName, weight: w, reps: r, oneRM,
+                date: new Date(log.date).toISOString().slice(0, 10),
+              });
+            }
+          }
+        }
+
+        setTemplates(mapped);
+        setPrs(Array.from(bestByExercise.values()));
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "No se pudo cargar tu entrenamiento.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadRealData();
+    return () => { cancelled = true; };
+  }, []);
   const folders = useMemo(() => ["Todos", ...Array.from(new Set(templates.map((t) => t.folder)))], [templates]);
   const filtered = useMemo(() => (folder === "Todos" ? templates : templates.filter((t) => t.folder === folder)), [templates, folder]);
   const selected = useMemo(() => templates.find((t) => t.id === selectedId) || null, [templates, selectedId]);
