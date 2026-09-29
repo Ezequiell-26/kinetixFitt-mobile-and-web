@@ -46,6 +46,7 @@ export default function TrainerCheckinsPage(){
   const [replyingTo, setReplyingTo] = useState<CheckInItem | null>(null);
   const [replyText, setReplyText] = useState("");
   const [savingReply, setSavingReply] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadCheckins(){
     setLoading(true);
@@ -80,6 +81,7 @@ export default function TrainerCheckinsPage(){
     e.preventDefault();
     if (!replyingTo || !replyText.trim()) return;
     setSavingReply(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/checkins", {
@@ -96,9 +98,12 @@ export default function TrainerCheckinsPage(){
         setCheckins(prev => prev.map(c => c.id === replyingTo.id ? { ...c, trainerReply: replyText.trim(), reviewed: true } : c));
         setReplyingTo(null);
         setReplyText("");
+      } else {
+        const payload = await res.json().catch(() => null);
+        setError(payload?.error || "No se pudo enviar la respuesta.");
       }
     } catch {
-      alert("Error al enviar respuesta");
+      setError("No se pudo conectar con KinetixFitt.");
     } finally {
       setSavingReply(false);
     }
@@ -147,6 +152,12 @@ export default function TrainerCheckinsPage(){
           ))}
         </div>
       </div>
+
+      {error && (
+        <Card role="alert" className="border-red-500/30 bg-red-500/10">
+          <CardContent className="py-3 text-sm text-red-300">{error}</CardContent>
+        </Card>
+      )}
 
       {/* Reply Modal */}
       {replyingTo && (
