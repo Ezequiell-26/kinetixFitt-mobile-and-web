@@ -60,6 +60,12 @@ export interface Translation {
     monthsAgo: string;
     yearsAgo: string;
   };
+  nav: {
+    features: string;
+    plans: string;
+    download: string;
+    menu: string;
+  };
   auth: {
     title: string;
     subtitle: string;
@@ -426,6 +432,12 @@ export const translations: Record<Locale, Translation> = {
       monthsAgo: 'hace {months} meses',
       yearsAgo: 'hace {years} años',
     },
+    nav: {
+      features: 'Funciones',
+      plans: 'Planes',
+      download: 'Descargar',
+      menu: 'Menú',
+    },
     auth: {
       title: 'KINETIXFITT',
       subtitle: 'Entrenamiento personalizado online',
@@ -790,6 +802,12 @@ export const translations: Record<Locale, Translation> = {
       monthsAgo: '{months} months ago',
       yearsAgo: '{years} years ago',
     },
+    nav: {
+      features: 'Features',
+      plans: 'Plans',
+      download: 'Download',
+      menu: 'Menu',
+    },
     auth: {
       title: 'KINETIXFITT',
       subtitle: 'Personalized online training',
@@ -1153,6 +1171,12 @@ export const translations: Record<Locale, Translation> = {
       weeksAgo: 'há {weeks} semanas',
       monthsAgo: 'há {months} meses',
       yearsAgo: 'há {years} anos',
+    },
+    nav: {
+      features: 'Recursos',
+      plans: 'Planos',
+      download: 'Baixar',
+      menu: 'Menu',
     },
     auth: {
       title: 'KINETIXFITT',

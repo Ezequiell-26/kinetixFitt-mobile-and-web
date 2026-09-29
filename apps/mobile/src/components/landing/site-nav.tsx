@@ -33,7 +33,7 @@ export function SiteNav() {
               {links.map((l) => <Link key={l.href} href={l.href} className="flex min-h-11 items-center rounded-xl px-3 text-sm text-zinc-200 hover:bg-white/[0.05]">{t(l.labelKey)}</Link>)}
             </div>
           </details>
-          <Link href="/login" className="ml-1 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.06]">{t('auth.login.button')}</Link>
+          <Link href="/login" className="ml-1 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.06]">{t('auth.signIn')}</Link>
           <Link href="/register" className="hidden min-h-11 items-center justify-center rounded-full bg-[#D6FF2A] px-5 text-sm font-black text-black transition hover:bg-[#E0FF5A] sm:inline-flex">Empezar</Link>
         </nav>
       </div>

@@ -133,6 +133,10 @@ jobs:
           TRUST_PROXY_HEADERS: "false"
         run: npm run test:security -w apps/mobile
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/mobile
+
       - name: Product E2E (Playwright)
         if: ${{ hashFiles('apps/mobile/playwright.config.*', 'apps/mobile/tests/e2e/**', 'apps/web/playwright.config.*', 'apps/web/tests/e2e/**') != '' }}
         env:

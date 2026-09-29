@@ -2,6 +2,8 @@
 const nextConfig = {
   // Output standalone (Docker/self-host). En Vercel se ignora sin daño.
   output: "standalone",
+  // Permite el origen loopback usado por Playwright durante E2E/dev.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // Next 15 deprecó el lint integrado y este repo no tiene config plana de
   // ESLint en apps/mobile (el build fallaba con "Definition for rule
   // '@typescript-eslint/no-unused-vars' was not found" por el .eslintrc
