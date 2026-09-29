@@ -8,6 +8,7 @@
     ".github/**",
     "scripts/**",
     "package.json",
+    "vercel.json",
     "packages/**",
     "apps/**",
     "docs/**",
