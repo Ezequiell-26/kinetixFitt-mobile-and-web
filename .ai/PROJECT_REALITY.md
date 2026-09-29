@@ -4,6 +4,18 @@
 
 Este archivo es un mapa operativo, no una promesa de producción. El código, las migraciones y los checks vivos son la fuente de verdad.
 
+
+## Cambios verificados en la iteración actual (2026-09-29)
+
+- apps/mobile/src/components/payments-pro.tsx: checkout de Stripe/Mercado Pago conectado al endpoint real; evita éxito ficticio y usa idempotency key.
+- apps/mobile/src/components/everfit-ux-builder.tsx: biblioteca de ejercicios y clientes desde API real; crea programas mediante /api/programs y asigna mediante /api/clients/[id].
+- apps/mobile/src/components/strong-template.tsx: dejó de usar plantillas/PRs mock; carga programa e historial reales y persiste sesiones mediante /api/workout-logs.
+- apps/mobile/src/components/ai-meal-planner.tsx: eliminó menús hardcodeados y usa /api/ai/chat; cuando no hay proveedor configurado muestra estado explícito en vez de simular IA.
+- apps/mobile/src/components/challenges.tsx: progreso calculado desde workout logs/check-ins reales; leaderboard hardcodeado eliminado.
+- Check-ins cliente/trainer: errores visibles inline, sin alert() de navegador.
+- apps/mobile/tests/e2e/program-builder.spec.ts: journey real con fixtures aisladas de PostgreSQL para creación y asignación de programas.
+- CI posterior a esta iteración: los cambios han pasado typecheck/lint/build y security E2E en ejecuciones previas; el Product E2E del builder sigue bajo verificación en el run más reciente y no debe marcarse como verificado hasta que termine en verde.
+
 ## Estado global
 
 - `main` es la rama operativa para los cambios de lanzamiento solicitados.
