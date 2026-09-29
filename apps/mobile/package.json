@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "main": "electron/main.js",
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10 <12"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
