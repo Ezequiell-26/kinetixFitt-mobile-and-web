@@ -10,6 +10,7 @@ export type NavEntry = PrefEntry & { group: string; desc?: string };
 export const CLIENT_NAV: NavEntry[] = [
   { href: "/client/dashboard", label: "Inicio", group: "Navegación", desc: "Entrenamiento de hoy y tu progreso" },
   { href: "/client/workout", label: "Entrenar", group: "Navegación", desc: "Plan de la semana y sesiones" },
+  { href: "/client/calendar", label: "Calendario", group: "Navegación", desc: "Citas y disponibilidad" },
   { href: "/client/nutrition", label: "Nutrición", group: "Navegación", desc: "Macros, alimentos y hábitos" },
   { href: "/client/progress", label: "Progreso", group: "Navegación", desc: "Peso, cargas, medidas y fotos" },
   { href: "/client/messages", label: "Mensajes", group: "Navegación", desc: "Chat con tu coach" },
@@ -40,6 +41,7 @@ export const TRAINER_NAV: NavEntry[] = [
   { href: "/trainer/analytics", label: "Analíticas", group: "Negocio", desc: "Adherencia e ingresos" },
   { href: "/trainer/payments", label: "Pagos", group: "Negocio", desc: "Suscripciones" },
   { href: "/trainer/studio", label: "Studio", group: "Negocio", desc: "CRM, riesgo y automatismos" },
+  { href: "/trainer/changelog", label: "Novedades", group: "Sistema", desc: "Cambios recientes de la app" },
   { href: "/trainer/settings", label: "Ajustes", group: "Sistema", desc: "Preferencias" },
 ];
 
