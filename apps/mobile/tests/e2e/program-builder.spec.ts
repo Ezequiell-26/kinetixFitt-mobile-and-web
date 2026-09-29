@@ -13,7 +13,8 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
     const programName = `E2E Builder ${suffix}`;
 
     let trainerId = "";
-    let clientId = "";\n    let clientUserId = "";
+    let clientId = "";
+    let clientUserId = "";
 
     try {
       const passwordHash = await bcrypt.hash(password, 10);
@@ -44,7 +45,9 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
         },
       });
 
-      clientUserId = clientUser.id;\n\n      const client = await prisma.client.create({
+      clientUserId = clientUser.id;
+
+      const client = await prisma.client.create({
         data: {
           name: clientUser.name,
           email: clientUser.email,
