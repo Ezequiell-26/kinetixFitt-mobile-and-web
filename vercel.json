@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm install && npm --prefix apps/web ci",
-  "buildCommand": "npm --prefix apps/web run build",
-  "outputDirectory": "apps/web/.next",
-  "ignoreCommand": "git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" \"$VERCEL_GIT_COMMIT_SHA\" -- apps/web vercel.json package.json package-lock.json 2>/dev/null || exit 1",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "ignoreCommand": "cd ../.. && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" \"$VERCEL_GIT_COMMIT_SHA\" -- apps/web vercel.json package.json package-lock.json 2>/dev/null || exit 1",
   "regions": ["sfo1"],
   "env": {
     "NEXT_PUBLIC_APP_URL": "${NEXT_PUBLIC_APP_URL}",
