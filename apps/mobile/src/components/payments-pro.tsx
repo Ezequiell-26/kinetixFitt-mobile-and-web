@@ -25,7 +25,7 @@ export function PaymentsPro({ onSelect }: { onSelect?: (plan: string) => void })
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    capture("trainer_payments_viewed", { source: "payments_pro_component", selected_plan: selected });
+    capture("trainer_payments_viewed", { source: "payments_pro_component" });
     void fetch("/api/clients?limit=200")
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
@@ -37,6 +37,10 @@ export function PaymentsPro({ onSelect }: { onSelect?: (plan: string) => void })
         }
       })
       .catch(() => setError("No se pudieron cargar los clientes."));
+  }, []);
+
+  useEffect(() => {
+    capture("checkout_plan_viewed", { source: "payments_pro_component", selected_plan: selected });
   }, [selected]);
 
   const selectedClient = clients.find((client) => client.id === clientId);
