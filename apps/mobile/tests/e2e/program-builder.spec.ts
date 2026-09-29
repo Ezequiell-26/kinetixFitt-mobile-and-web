@@ -61,25 +61,17 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
       clientId = client.id;
 
       await page.goto("/login");
-      await page.fill("#email", trainerEmail);
-      await page.fill("#password", password);
-      const loginResponsePromise = page.waitForResponse(
-        (response) => response.url().endsWith("/api/auth/login") && response.request().method() === "POST",
-        { timeout: 15000 }
-      );
-      await page.getByRole("button", { name: /INGRESAR/i }).click();
-      const loginResponse = await loginResponsePromise;
+      const loginResponse = await page.request.post("/api/auth/login", {
+        data: { email: trainerEmail, password },
+      });
       expect(loginResponse.status()).toBe(200);
-      await expect
-        .poll(
-          async () => {
-            const response = await page.request.get("/api/auth/me");
-            if (!response.ok()) return null;
-            return (await response.json())?.role ?? null;
-          },
-          { timeout: 10000 }
-        )
-        .toBe("TRAINER");
+      const loginPayload = await loginResponse.json();
+      expect(loginPayload?.ok).toBe(true);
+      expect(loginPayload?.role).toBe("TRAINER");
+
+      const meResponse = await page.request.get("/api/auth/me");
+      expect(meResponse.status()).toBe(200);
+      expect((await meResponse.json())?.role).toBe("TRAINER");
 
       await page.goto("/trainer/studio");
       await page.getByRole("button", { name: "Plataformas" }).click();
