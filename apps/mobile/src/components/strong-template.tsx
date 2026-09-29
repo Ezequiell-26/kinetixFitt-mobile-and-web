@@ -60,7 +60,18 @@ function beep(freq = 880, dur = 0.22) {
     const ctx = new Ctx();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    o.type type ApiProgram = {
+    o.type = "sine";
+    o.frequency.setValueAtTime(freq, ctx.currentTime);
+    g.gain.setValueAtTime(0.14, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + dur);
+  } catch {}
+}
+
+type ApiProgram = {
   id: string;
   name: string;
   weeks: Array<{
@@ -94,19 +105,7 @@ function parseLoad(value: string | null | undefined): number {
   if (!value) return 0;
   const match = value.replace(',', '.').match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : 0;
-};
-
-= "sine";
-    o.frequency.setValueAtTime(freq, ctx.currentTime);
-    g.gain.setValueAtTime(0.14, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + dur);
-  } catch {}
 }
-
 export function StrongTemplate() {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [folder, setFolder] = useState<string>("Todos");
