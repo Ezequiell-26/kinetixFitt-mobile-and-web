@@ -61,17 +61,25 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
       clientId = client.id;
 
       await page.goto("/login");
-      const loginResponse = await page.request.post("/api/auth/login", {
-        data: { email: trainerEmail, password },
-      });
-      expect(loginResponse.status()).toBe(200);
-      const loginPayload = await loginResponse.json();
-      expect(loginPayload?.ok).toBe(true);
-      expect(loginPayload?.role).toBe("TRAINER");
+      const loginPayload = await page.evaluate(async ({ email, password }) => {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ email, password }),
+        });
+        return { status: response.status, body: await response.json() };
+      }, { email: trainerEmail, password });
+      expect(loginPayload.status).toBe(200);
+      expect(loginPayload.body?.ok).toBe(true);
+      expect(loginPayload.body?.role).toBe("TRAINER");
 
-      const meResponse = await page.request.get("/api/auth/me");
-      expect(meResponse.status()).toBe(200);
-      expect((await meResponse.json())?.role).toBe("TRAINER");
+      const mePayload = await page.evaluate(async () => {
+        const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+        return { status: response.status, body: await response.json() };
+      });
+      expect(mePayload.status).toBe(200);
+      expect(mePayload.body?.user?.role ?? mePayload.body?.role).toBe("TRAINER");
 
       await page.goto("/trainer/studio");
       await page.getByRole("button", { name: "Plataformas" }).click();
