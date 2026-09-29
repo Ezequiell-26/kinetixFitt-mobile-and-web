@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ import {
   ArrowDown,
   Dumbbell,
   Settings2,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 // Inspirado en Everfit (#2 UX/programación) — https://everfit.io
@@ -29,6 +32,7 @@ import {
 
 type BuilderExercise = {
   id: string;
+  exerciseId: string;
   name: string;
   muscle: string;
   sets: number;
@@ -55,31 +59,12 @@ type BuilderWeek = {
 
 type LibraryItem = { id: string; name: string; muscle: string; equipment: string };
 
-const LIBRARY: LibraryItem[] = [
-  { id: "1", name: "Press Banca", muscle: "Pecho", equipment: "Barra" },
-  { id: "2", name: "Sentadilla", muscle: "Pierna", equipment: "Barra" },
-  { id: "3", name: "Peso Muerto", muscle: "Espalda", equipment: "Barra" },
-  { id: "4", name: "Dominadas", muscle: "Espalda", equipment: "Peso corporal" },
-  { id: "5", name: "Press Militar", muscle: "Hombro", equipment: "Mancuerna" },
-  { id: "6", name: "Remo con Barra", muscle: "Espalda", equipment: "Barra" },
-  { id: "7", name: "Fondos", muscle: "Pecho", equipment: "Peso corporal" },
-  { id: "8", name: "Curl Barra", muscle: "Brazo", equipment: "Barra" },
-  { id: "9", name: "Face Pull", muscle: "Hombro", equipment: "Polea" },
-  { id: "10", name: "Hip Thrust", muscle: "Glúteo", equipment: "Barra" },
-  { id: "11", name: "Elevaciones Laterales", muscle: "Hombro", equipment: "Mancuerna" },
-  { id: "12", name: "Bulgarian Split", muscle: "Pierna", equipment: "Mancuerna" },
-];
-
-const CLIENTS = [
-  { id: "1", name: "Martín Fernández" },
-  { id: "2", name: "Sofía Rodríguez" },
-  { id: "3", name: "Lucas Gómez" },
-  { id: "4", name: "Valentina Díaz" },
-];
+type Client = { id: string; name: string; email?: string | null; assignedProgramId?: string | null };
 
 function makeEx(lib: LibraryItem): BuilderExercise {
   return {
     id: `ex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    exerciseId: lib.id,
     name: lib.name,
     muscle: lib.muscle,
     sets: 3,
@@ -99,31 +84,107 @@ export function EverfitUxBuilder() {
       id: "w1",
       name: "Semana 1",
       days: [
-        {
-          id: "d1",
-          name: "Día 1 — Tren Superior",
-          exercises: [makeEx(LIBRARY[0]), makeEx(LIBRARY[3])],
-        },
-        { id: "d2", name: "Día 2 — Tren Inferior", exercises: [makeEx(LIBRARY[1])] },
+        { id: "d1", name: "Día 1 — Tren Superior", exercises: [] },
+        { id: "d2", name: "Día 2 — Tren Inferior", exercises: [] },
       ],
     },
   ]);
+  const [library, setLibrary] = useState<LibraryItem[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [programName, setProgramName] = useState("Programa nuevo");
   const [search, setSearch] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("Todos");
   const [autoProgression, setAutoProgression] = useState(true);
   const [progressionRule, setProgressionRule] = useState<"linear" | "double" | "rir">("double");
-  const [selectedClients, setSelectedClients] = useState<string[]>(["1"]);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [dragEx, setDragEx] = useState<BuilderExercise | null>(null);
   const [dragLibrary, setDragLibrary] = useState<LibraryItem | null>(null);
 
-  const muscles = useMemo(() => ["Todos", ...Array.from(new Set(LIBRARY.map((l) => l.muscle)))], []);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBuilderData() {
+      setLibraryLoading(true);
+      setDataError(null);
+      try {
+        const [exerciseRes, clientRes] = await Promise.all([
+          fetch("/api/exercises?limit=100", { cache: "no-store" }),
+          fetch("/api/clients?limit=200", { cache: "no-store" }),
+        ]);
+        const exerciseData = await exerciseRes.json().catch(() => null);
+        const clientData = await clientRes.json().catch(() => null);
+
+        if (!exerciseRes.ok) throw new Error(exerciseData?.error || "No se pudo cargar la biblioteca de ejercicios.");
+        if (!clientRes.ok) throw new Error(clientData?.error || "No se pudo cargar tu cartera de clientes.");
+
+        const exerciseItems = Array.isArray(exerciseData) ? exerciseData : [];
+        const clientItems = Array.isArray(clientData?.items)
+          ? clientData.items
+          : Array.isArray(clientData)
+            ? clientData
+            : [];
+
+        const mappedLibrary = exerciseItems
+          .filter((item) => item?.id && item?.name)
+          .map((item) => ({
+            id: String(item.id),
+            name: String(item.name),
+            muscle: String(item.muscleGroup || "General"),
+            equipment: String(item.equipment || "No especificado"),
+          }));
+
+        if (mappedLibrary.length === 0) throw new Error("La biblioteca de ejercicios está vacía.");
+
+        if (!cancelled) {
+          setLibrary(mappedLibrary);
+          setClients(clientItems);
+          setSelectedClients((current) => current.filter((id) => clientItems.some((client: Client) => client.id === id)));
+
+          setWeeks((current) => {
+            const hasExercises = current.some((week) => week.days.some((day) => day.exercises.length > 0));
+            if (hasExercises) return current;
+            return current.map((week, weekIndex) =>
+              weekIndex === 0
+                ? {
+                    ...week,
+                    days: week.days.map((day, dayIndex) =>
+                      dayIndex === 0
+                        ? { ...day, exercises: mappedLibrary.slice(0, 2).map(makeEx) }
+                        : day
+                    ),
+                  }
+                : week
+            );
+          });
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setDataError(cause instanceof Error ? cause.message : "No se pudieron cargar los datos del builder.");
+        }
+      } finally {
+        if (!cancelled) setLibraryLoading(false);
+      }
+    }
+
+    void loadBuilderData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const muscles = useMemo(() => ["Todos", ...Array.from(new Set(library.map((l) => l.muscle)))], [library]);
   const filteredLibrary = useMemo(() => {
-    return LIBRARY.filter((l) => {
+    return library.filter((l) => {
       const matchSearch = !search || l.name.toLowerCase().includes(search.toLowerCase());
       const matchMuscle = muscleFilter === "Todos" || l.muscle === muscleFilter;
       return matchSearch && matchMuscle;
     });
-  }, [search, muscleFilter]);
+  }, [library, search, muscleFilter]);
 
   const totalExercises = weeks.reduce((a, w) => a + w.days.reduce((b, d) => b + d.exercises.length, 0), 0);
   const totalSets = weeks.reduce((a, w) => a + w.days.reduce((b, d) => b + d.exercises.reduce((c, e) => c + e.sets, 0), 0), 0);
@@ -147,10 +208,13 @@ export function EverfitUxBuilder() {
   }
 
   function addExerciseToDay(weekIdx: number, dayIdx: number, lib?: LibraryItem) {
+    const item = lib || library[0];
+    if (!item || !weeks[weekIdx]?.days[dayIdx]) return;
     const copy = [...weeks];
-    const item = lib || LIBRARY[0];
     copy[weekIdx].days[dayIdx].exercises.push(makeEx(item));
     setWeeks(copy);
+    setSaveMessage(null);
+    setSaveError(null);
   }
 
   function updateEx(weekIdx: number, dayIdx: number, exIdx: number, field: keyof BuilderExercise, value: unknown) {
@@ -207,6 +271,109 @@ export function EverfitUxBuilder() {
 
   function toggleClient(id: string) {
     setSelectedClients((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setSaveMessage(null);
+    setSaveError(null);
+  }
+
+  async function saveAndAssign() {
+    if (saving) return;
+    const trimmedName = programName.trim();
+    if (!trimmedName) {
+      setSaveError("Poné un nombre para el programa.");
+      return;
+    }
+    if (selectedClients.length === 0) {
+      setSaveError("Seleccioná al menos un cliente.");
+      return;
+    }
+    if (totalExercises === 0) {
+      setSaveError("Agregá al menos un ejercicio antes de guardar.");
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage(null);
+    setSaveError(null);
+
+    try {
+      const frequency = Math.max(1, Math.min(7, Math.max(...weeks.map((week) => week.days.length), 1)));
+      const payload = {
+        name: trimmedName,
+        description: `Creado desde Everfit UX Builder. Regla de progresión: ${autoProgression ? progressionRule : "manual"}.`,
+        durationWeeks: weeks.length,
+        frequency,
+        weeks: weeks.map((week, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          days: week.days.map((day, dayIndex) => ({
+            dayNumber: dayIndex + 1,
+            name: day.name,
+            estimatedMin: 60,
+            exercises: day.exercises.map((exercise) => ({
+              exerciseId: exercise.exerciseId,
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              rir: exercise.rir,
+              restSec: exercise.restSec,
+              tempo: exercise.tempo,
+              load: exercise.weight.trim() || undefined,
+              notes: exercise.note.trim() || undefined,
+            })),
+          })),
+        })),
+      };
+
+      const programRes = await fetch("/api/programs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const programData = await programRes.json().catch(() => null);
+
+      if (!programRes.ok || !programData?.id) {
+        throw new Error(programData?.error || "No se pudo guardar el programa.");
+      }
+
+      const assignmentResults = await Promise.all(
+        selectedClients.map(async (clientId) => {
+          try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ assignedProgramId: programData.id }),
+            });
+            const body = await response.json().catch(() => null);
+            return { clientId, ok: response.ok, error: body?.error || null };
+          } catch (cause) {
+            return {
+              clientId,
+              ok: false,
+              error: cause instanceof Error ? cause.message : "Error de red",
+            };
+          }
+        })
+      );
+
+      const failed = assignmentResults.filter((result) => !result.ok);
+      const assigned = assignmentResults.length - failed.length;
+
+      setSelectedClients([]);
+      setSaveMessage(
+        assigned === assignmentResults.length
+          ? `Programa "${programData.name}" creado y asignado a ${assigned} cliente${assigned === 1 ? "" : "s"}.`
+          : `Programa "${programData.name}" creado. Se asignó a ${assigned} de ${assignmentResults.length} cliente${assignmentResults.length === 1 ? "" : "s"}.`
+      );
+
+      if (failed.length > 0) {
+        setSaveError(
+          `${failed.length} asignación${failed.length === 1 ? "" : "es"} fallaron. ${failed.map((item) => item.error).filter(Boolean).slice(0, 2).join(" ")}`
+        );
+      }
+    } catch (cause) {
+      setSaveError(cause instanceof Error ? cause.message : "No se pudo guardar el programa.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Auto-progression preview: next week weight = +2.5% or double progression logic
@@ -266,6 +433,13 @@ export function EverfitUxBuilder() {
 
       <CardContent className="space-y-3">
         <div className="grid lg:grid-cols-[280px_1fr] gap-3">
+          {dataError && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-200">
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              <span>{dataError}</span>
+            </div>
+          )}
+
           {/* Library */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col max-h-[560px]">
             <div className="p-3 border-b border-zinc-800 space-y-2">
@@ -290,10 +464,18 @@ export function EverfitUxBuilder() {
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-zinc-500">Arrastrá al día o tocá + — {filteredLibrary.length} ejercicios</p>
+              <p className="text-[11px] text-zinc-500">
+                {libraryLoading ? "Cargando biblioteca real..." : `Arrastrá al día o tocá + — ${filteredLibrary.length} ejercicios`}
+              </p>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-              {filteredLibrary.map((lib) => (
+              {libraryLoading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-xs text-zinc-500">
+                  <Loader2 size={14} className="animate-spin" /> Cargando ejercicios...
+                </div>
+              ) : filteredLibrary.length === 0 ? (
+                <p className="px-2 py-10 text-center text-xs text-zinc-500">No hay ejercicios para ese filtro.</p>
+              ) : filteredLibrary.map((lib) => (
                 <div
                   key={lib.id}
                   draggable
@@ -470,12 +652,27 @@ export function EverfitUxBuilder() {
 
         {/* Assignment */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-black tracking-widest uppercase text-zinc-400 flex items-center gap-1.5"><Users size={14} className="text-primary" /> Asignar programa</p>
-            <Badge variant="muted" className="border-zinc-700 text-zinc-500 text-[11px]">{selectedClients.length} clientes</Badge>
+          <div className="flex items-center justify-between mb-3 gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-black tracking-widest uppercase text-zinc-400 flex items-center gap-1.5"><Users size={14} className="text-primary" /> Asignar programa real</p>
+              <p className="mt-1 text-[11px] text-zinc-500">Se crea el programa en la base y luego se asigna a los clientes seleccionados.</p>
+            </div>
+            <Badge variant="muted" className="border-zinc-700 text-zinc-500 text-[11px] shrink-0">{selectedClients.length} clientes</Badge>
           </div>
-          <div className="grid sm:grid-cols-4 gap-2 mb-3">
-            {CLIENTS.map((c) => {
+
+          <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <input
+              value={programName}
+              onChange={(e) => { setProgramName(e.target.value); setSaveMessage(null); setSaveError(null); }}
+              maxLength={160}
+              placeholder="Nombre del programa"
+              className="h-10 rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-sm font-bold text-white placeholder:text-zinc-500 focus:border-primary focus:outline-none"
+            />
+            <span className="flex items-center gap-1.5 px-2 text-xs text-zinc-500"><Settings2 size={12} /> {weeks.length} semanas • {Math.max(...weeks.map((w) => w.days.length), 1)} días/sem</span>
+          </div>
+
+          <div className="mb-3 max-h-44 overflow-y-auto pr-1 grid sm:grid-cols-2 xl:grid-cols-4 gap-2">
+            {clients.map((c) => {
               const sel = selectedClients.includes(c.id);
               return (
                 <button
@@ -489,21 +686,48 @@ export function EverfitUxBuilder() {
               );
             })}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <input type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="h-9 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white" />
-            <span className="flex items-center gap-1.5 text-xs text-zinc-500 px-2"><Settings2 size={12} /> Duración {weeks.length} sem • {weeks.reduce((a, w) => a + w.days.length, 0)} días/sem</span>
+          {saveError && (
+            <div role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-200">
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
+          {saveMessage && (
+            <div role="status" className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
+              <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
+              <span>{saveMessage}</span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500 px-2">
+              <Settings2 size={12} /> Duración {weeks.length} sem • {Math.max(...weeks.map((w) => w.days.length), 1)} días/sem
+            </span>
             <Button
               variant="accent"
               className="ml-auto font-black"
-              disabled={selectedClients.length === 0}
-              onClick={() => alert(`Programa asignado a ${selectedClients.length} clientes (${weeks.length} semanas) con auto-progression ${progressionRule}`)}
+              disabled={saving || selectedClients.length === 0 || !programName.trim() || totalExercises === 0}
+              onClick={() => void saveAndAssign()}
             >
-              {selectedClients.length ? `Asignar a ${selectedClients.length} clientes →` : "Seleccioná clientes"}
+              {saving ? (
+                <><Loader2 size={14} className="animate-spin mr-1" /> Guardando y asignando...</>
+              ) : selectedClients.length ? (
+                <>Crear y asignar a {selectedClients.length} cliente{selectedClients.length === 1 ? "" : "s"} →</>
+              ) : (
+                "Seleccioná clientes"
+              )}
             </Button>
           </div>
+
           <div className="mt-3 bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 rounded-xl p-2.5 flex gap-2">
             <TrendingUp size={14} className="text-primary shrink-0 mt-0.5" />
             <div>
+              <p className="text-xs font-bold text-white">Regla de progresión</p>
+              <p className="mt-0.5 text-[11px] text-zinc-500">
+                {autoProgression
+                  ? `Se guarda como regla “${progressionRule}” en el programa; las cargas quedan según lo definido en cada ejercicio.`
+                  : "Progresión manual: las cargas quedan según lo definido en cada ejercicio."}
+              </p>
             </div>
           </div>
         </div>
