@@ -249,14 +249,73 @@ export function StrongTemplate() {
     setCurrentSet(1);
     setLogged({});
     setLastPr(null);
+    setSaveState("idle");
+    setSaveError(null);
     setRestRem(0);
     setIsResting(false);
+    workoutStartedAtRef.current = Date.now();
     const tpl = templates.find((t) => t.id === id);
     if (tpl) {
       setWeight(String(tpl.exercises[0]?.weight || ""));
       setReps(tpl.exercises[0]?.reps.split("-")[0] || "8");
     }
     beep(660, 0.15);
+  }
+
+  async function persistWorkout(tpl: WorkoutTemplate, entries: Record<string, { w: number; r: number }>) {
+    setSaveState("saving");
+    setSaveError(null);
+    try {
+      const loggedSets = tpl.exercises.flatMap((exercise) =>
+        Array.from({ length: exercise.sets }, (_, index) => {
+          const entry = entries[exercise.id + "-" + (index + 1)];
+          if (!entry) return null;
+          return {
+            exerciseName: exercise.name,
+            setNumber: index + 1,
+            weight: entry.w,
+            reps: entry.r,
+            completed: true,
+          };
+        }).filter((value): value is {
+          exerciseName: string;
+          setNumber: number;
+          weight: number;
+          reps: number;
+          completed: true;
+        } => value !== null)
+      );
+
+      if (loggedSets.length === 0) throw new Error("No hay series registradas para guardar.");
+
+      const startedAt = workoutStartedAtRef.current;
+      const durationMin = startedAt
+        ? Math.max(1, Math.round((Date.now() - startedAt) / 60000))
+        : undefined;
+
+      const response = await fetch("/api/workout-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workoutId: tpl.id,
+          workoutName: tpl.name,
+          durationMin,
+          completed: true,
+          sets: loggedSets,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error || "No se pudo guardar la sesión.");
+
+      setSaveState("saved");
+      setTemplates((prev) => prev.map((item) => item.id === tpl.id
+        ? { ...item, lastUsed: new Date().toLocaleDateString("es-AR") }
+        : item
+      ));
+    } catch (cause) {
+      setSaveState("error");
+      setSaveError(cause instanceof Error ? cause.message : "No se pudo guardar la sesión.");
+    }
   }
 
   function logSet() {
@@ -300,10 +359,11 @@ export function StrongTemplate() {
       setIsResting(true);
       setPaused(false);
     } else {
-      // finished workout
+      const completedEntries = { ...logged, [key]: { w, r } };
       setRestRem(0);
       setIsResting(false);
       beep(800, 0.4);
+      void persistWorkout(activeTpl, completedEntries);
     }
   }
 
@@ -313,6 +373,37 @@ export function StrongTemplate() {
   }
 
   const bestPr = useMemo(() => [...prs].sort((a, b) => b.oneRM - a.oneRM)[0], [prs]);
+
+  if (loading) {
+    return (
+      <Card className="border-zinc-800 bg-zinc-900 overflow-hidden">
+        <CardContent className="py-10 text-center text-xs text-zinc-500">Cargando tu programa y tu historial real...</CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-500/20 bg-zinc-900 overflow-hidden">
+        <CardContent className="py-8 text-center space-y-3">
+          <p role="alert" className="text-sm text-red-300">{error}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>Reintentar</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (templates.length === 0) {
+    return (
+      <Card className="border-zinc-800 bg-zinc-900 overflow-hidden">
+        <CardContent className="py-10 text-center space-y-2">
+          <Dumbbell size={24} className="mx-auto text-zinc-500" />
+          <p className="font-bold text-sm">Todavía no hay sesiones en tu programa.</p>
+          <p className="text-xs text-zinc-500">Tu coach debe asignarte un programa antes de empezar desde acá.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (activeTpl && activeEx) {
     const isFinished = doneSets >= totalSets && totalSets > 0;
@@ -381,11 +472,19 @@ export function StrongTemplate() {
               <Trophy size={28} />
             </div>
             <div>
-              <p className="font-black text-lg">¡Sesión completada!</p>
+              <p className="font-black text-lg">
+                {saveState === "saved" ? "¡Sesión guardada!" : saveState === "saving" ? "Guardando sesión..." : saveState === "error" ? "Sesión completada, falta guardarla" : "¡Sesión completada!"}
+              </p>
               <p className="text-xs text-zinc-500">{activeTpl.name} • {doneSets} series • Volumen {(Object.values(logged).reduce((a, v) => a + v.w * v.r, 0) / 1000).toFixed(1)}t</p>
+              {saveState === "error" && saveError && <p role="alert" className="text-xs text-red-300 font-bold mt-1">{saveError}</p>}
               {lastPr && <p className="text-xs text-amber-400 font-bold mt-1">PR del día: {lastPr.exerciseName} {lastPr.weight}×{lastPr.reps} → 1RM {Math.round(lastPr.oneRM)}kg</p>}
             </div>
-            <div className="flex gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {saveState === "error" && (
+                <Button variant="outline" onClick={() => void persistWorkout(activeTpl, logged)} className="border-red-500/30">
+                  Guardar de nuevo
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setActiveId(null)} className="border-zinc-700">
                 Volver a plantillas
               </Button>
@@ -470,7 +569,7 @@ export function StrongTemplate() {
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <Dumbbell size={18} className="text-primary" /> Plantillas Strong
-              <Badge variant="muted" className="text-[10px] border-zinc-700">Template + Timer + PR</Badge>
+              <Badge variant="muted" className="text-[10px] border-zinc-700">Programa + Timer + PR</Badge>
             </CardTitle>
           </div>
           {bestPr && (
