@@ -42,6 +42,7 @@ export default function ClientCheckinsPage(){
   const [history, setHistory] = useState<CheckInHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadHistory(){
     setLoadingHistory(true);
@@ -62,6 +63,7 @@ export default function ClientCheckinsPage(){
   async function submit(e: React.FormEvent){
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/checkins", {
         method: "POST",
@@ -85,12 +87,14 @@ export default function ClientCheckinsPage(){
         loadHistory();
         setTimeout(() => setSent(false), 5000);
       } else {
-        alert("Error al enviar check-in");
+        const payload = await res.json().catch(() => null);
+        setError(payload?.error || "No se pudo enviar el check-in.");
       }
     } catch {
-      alert("Error al enviar check-in");
+      setError("No se pudo conectar con KinetixFitt.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -113,6 +117,12 @@ export default function ClientCheckinsPage(){
           {sent ? "Enviado" : "Semanal"}
         </Badge>
       </div>
+
+      {error && (
+        <Card role="alert" className="border-red-500/30 bg-red-500/10">
+          <CardContent className="py-4 text-center text-red-300 font-semibold text-sm">{error}</CardContent>
+        </Card>
+      )}
 
       {sent && (
         <Card className="border-emerald-500/30 bg-emerald-500/10 animate-in fade-in">
