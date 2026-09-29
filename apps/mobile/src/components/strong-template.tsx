@@ -15,7 +15,6 @@ import {
   Trophy,
   Flame,
   Folder,
-  Plus,
   Check,
   Timer,
   Zap,
