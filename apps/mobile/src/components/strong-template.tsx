@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dumbbell,
   Clock,
-  Copy,
   Play,
   Pause,
   RotateCcw,
@@ -233,14 +232,6 @@ export function StrongTemplate() {
       setReps(activeEx.reps.split("-")[0] || "8");
     }
   }, [activeEx, currentExIdx]);
-
-  function duplicateTpl(id: string) {
-    const tpl = templates.find((t) => t.id === id);
-    if (!tpl) return;
-    const copy: WorkoutTemplate = { ...tpl, id: `${tpl.id}-copy-${Date.now()}`, name: `${tpl.name} (copia)`, lastUsed: "Ahora" };
-    setTemplates((prev) => [copy, ...prev]);
-    setSelectedId(copy.id);
-  }
 
   function startWorkout(id: string) {
     setActiveId(id);
@@ -546,7 +537,7 @@ export function StrongTemplate() {
 
             <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
               <Button variant="ghost" size="sm" onClick={() => setActiveId(null)} className="text-zinc-400">
-                ← Plantillas
+                ← sesiones
               </Button>
               <div className="flex gap-1">
                 {activeTpl.exercises.map((_, i) => (
@@ -567,7 +558,7 @@ export function StrongTemplate() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Dumbbell size={18} className="text-primary" /> Plantillas Strong
+              <Dumbbell size={18} className="text-primary" /> Mis sesiones
               <Badge variant="muted" className="text-[10px] border-zinc-700">Programa + Timer + PR</Badge>
             </CardTitle>
           </div>
@@ -623,9 +614,6 @@ export function StrongTemplate() {
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button variant="outline" className="border-zinc-700" onClick={() => duplicateTpl(selected.id)}>
-                  <Copy size={14} className="mr-2" /> Duplicar
-                </Button>
                 <Button onClick={() => startWorkout(selected.id)} className="bg-primary text-black hover:bg-primary-hover font-black">
                   <Play size={16} className="mr-2" /> Empezar
                 </Button>
@@ -662,9 +650,6 @@ export function StrongTemplate() {
                 <div className="mt-3 flex items-center gap-1.5">
                   <Badge variant="muted" className="border-zinc-800 text-zinc-400 text-[10px]">{tpl.exercises.length} ej</Badge>
                   <Badge variant="muted" className="border-zinc-800 text-zinc-400 text-[10px]"><Clock size={10} className="mr-1" />{tpl.exercises.reduce((a, e) => a + e.restSec, 0) / 60}m</Badge>
-                  <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs font-bold text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); duplicateTpl(tpl.id); }}>
-                    <Copy size={12} className="mr-1" /> Duplicar
-                  </Button>
                 </div>
                 <Button size="sm" className="w-full mt-2 bg-white text-black hover:bg-zinc-100 font-bold h-8" onClick={(e) => { e.stopPropagation(); startWorkout(tpl.id); }}>
                   <Play size={14} className="mr-1" /> Entrenar
