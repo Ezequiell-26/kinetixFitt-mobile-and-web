@@ -1,3 +1,9 @@
+## [2026-10-05] — Settings / notifications hardening
+
+- Corregido el botón de cierre de sesión del cliente para ejecutar realmente la acción.
+- SMS queda explícitamente no disponible mientras no exista proveedor configurado.
+- WhatsApp solo puede quedar activo cuando `NEXT_PUBLIC_WHATSAPP_NUMBER` existe en servidor.
+- El catálogo de Recursos VIP ahora tiene contenido expandible, favoritos locales y audio motivacional real del proyecto.
 ## [2026-10-05] — Reliability / UX cleanup
 
 - Corregido el request JSON roto de `AiMealPlanner` que impedía el `typecheck` móvil (TS1135).
