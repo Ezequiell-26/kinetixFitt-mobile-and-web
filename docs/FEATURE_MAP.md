@@ -12,7 +12,7 @@ Leyenda de estado: ✅ montada y funcional · 📦 reubicada en hub · 🧩 parc
 | Generador de sesión | workout.lol MIT, biblioteca local | /client/workout (abajo) | ✅ |
 | Strong templates | plantillas 5/3/1 etc. | /client/workout | ✅ |
 | Progreso | peso, cargas, medidas, fotos privadas, charts reales | /client/progress | ✅ |
-| Wearables BT | ritmo cardíaco real vía Web Bluetooth | Progreso → tab Wearables | ✅ |
+| Wearables BT | conexión de dispositivos compatibles | Progreso → tab Wearables | 🧩 (requiere dispositivo real) |
 | Mapa muscular / PRs / mesetas | volumen por músculo real, PRs por sesión | /client/progress | ✅ |
 | LiftShift analytics | volumen/1RM/adherencia semanal reales | /client/progress | ✅ |
 | Check-ins | 8 preguntas + fotos + respuesta del coach | /client/checkins | ✅ |
@@ -27,9 +27,9 @@ Leyenda de estado: ✅ montada y funcional · 📦 reubicada en hub · 🧩 parc
 | Educación | wiki interna | /client/tools (Educación) | 📦 |
 | Sistema | PWA install, push, calendarios, onboarding video | /client/tools (Sistema) | 📦 |
 | IA Coach | chat con contexto del programa | /client/dashboard + nutrición | ✅ (🔜 capa post-entreno) |
-| Historial | sesiones pasadas | /client/history | ✅ (🔜 al drawer Más) |
-| Onboarding guiado | flow de configuración | /client/onboarding | ✅ (🔜 link desde Perfil) |
-| Favoritos / Recientes | marcado de funciones | — | 🔜 R-next |
+| Historial | sesiones pasadas | /client/history | ✅ (también en drawer Más) |
+| Onboarding guiado | flow de configuración | /client/onboarding | ✅ (también desde Perfil) |
+| Favoritos / Recientes | marcado de funciones | /client/tools + paleta | ✅ |
 
 ## TRAINER
 
@@ -51,7 +51,7 @@ Leyenda de estado: ✅ montada y funcional · 📦 reubicada en hub · 🧩 parc
 Auth JWT por roles ✅ · PWA instalable ✅ · Electron wrapper ✅ · tema claro/oscuro ✅ · búsqueda ⌘K ✅ · notificaciones ✅ · persistencia de programas con historial preservado + tests ✅.
 
 ## Deuda conocida (documentada, no oculta)
-- Uploads privados servidos desde `public/` → **P0 pendiente** (requiere mover storage + ruta autenticada).
+- Uploads privados: almacenamiento canónico en `storage/uploads` y serving mediante rutas autenticadas; validar E2E con usuario propietario/no propietario antes del release.
 - Fotos de la referencia (pasos/calorías/sueño) sin fuente de datos real → no se inventan.
 - Store de reset-password en memoria (dev-only, documentado).
 - Tooltips de charts dark en tema claro.
