@@ -189,7 +189,7 @@ export default function ResourcesPage() {
                     ))}
                   </div>
                   {resource.type === "Audio" && (
-                    <audio className="mt-4 w-full" controls preload="none" src="/audio/narrador-arranque.mp3" aria-label="Audio de preparación pre-entreno" />
+                    <audio className="mt-4 w-full" controls preload="none" src="/audio/voices/kinetixfitt/motivation/vamos-suave.mp3" aria-label="Audio de preparación pre-entreno" />
                   )}
                 </div>
               )}
