@@ -38,10 +38,14 @@ export function AiMealPlanner() {
     setError(null);
     setPlan(null);
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+
     try {
       const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: `Generá una propuesta de alimentación de un día para un atleta con objetivo de ${GOALS[goal]} y un objetivo aproximado de ${targetKcal} kcal. No inventes datos clínicos. Organizá la respuesta en Desayuno, Almuerzo, Cena y Snack. Indicá cantidades aproximadas solo cuando sean razonables y aclará que es una propuesta general, no una indicación médica.`,
         }),
@@ -62,8 +66,15 @@ export function AiMealPlanner() {
       setPlan(payload.answer);
       setSource({ provider: payload.provider, model: payload.model });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo generar el plan.");
+      setError(
+        cause instanceof DOMException && cause.name === "AbortError"
+          ? "La IA tardó demasiado en responder. Probá nuevamente."
+          : cause instanceof Error
+            ? cause.message
+            : "No se pudo generar el plan."
+      );
     } finally {
+      window.clearTimeout(timeout);
       setGenerating(false);
     }
   }
