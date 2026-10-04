@@ -37,11 +37,12 @@ export function CommandPalettePro({ role = "trainer" }: { role?: "trainer" | "cl
   useEffect(() => {
     if (role !== "trainer" || !open || q.trim().length < 2) { setDynamic([]); return; }
     const term = q.trim().toLowerCase();
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
         const [exRes, clRes] = await Promise.all([
-          fetch(`/api/exercises?q=${encodeURIComponent(term)}`).then((r) => (r.ok ? r.json() : [])),
-          fetch("/api/clients?limit=200").then((r) => (r.ok ? r.json() : [])),
+          fetch(`/api/exercises?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((r) => (r.ok ? r.json() : [])),
+          fetch("/api/clients?limit=200", { signal: controller.signal }).then((r) => (r.ok ? r.json() : [])),
         ]);
         const out: Cmd[] = [];
         if (Array.isArray(exRes)) {
@@ -53,9 +54,14 @@ export function CommandPalettePro({ role = "trainer" }: { role?: "trainer" | "cl
           out.push({ label: c.name, href: `/trainer/clients/${c.id}`, group: "Atletas", desc: c.plan || undefined });
         }
         setDynamic(out);
-      } catch { setDynamic([]); }
+      } catch (cause) {
+        if (!(cause instanceof DOMException && cause.name === "AbortError")) setDynamic([]);
+      }
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [q, open, role]);
 
   useEffect(() => {
