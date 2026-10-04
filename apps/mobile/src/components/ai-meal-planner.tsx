@@ -44,7 +44,7 @@ export function AiMealPlanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: `Generá una propuesta de alimentación de un día para un atleta con objetivo de ${GOALS[goal]} y un objetivo aproximado de ${targetKcal} kcal. No inventes datos clínicos. Organizá la respuesta en Desayuno, Almuerzo, Cena y Snack. Indicá cantidades aproximadas solo cuando sean razonables y aclará que es una propuesta general, no una indicación médica.`,
-        },
+        }),
       });
       const payload = (await response.json().catch(() => null)) as AiResponse | null;
 
