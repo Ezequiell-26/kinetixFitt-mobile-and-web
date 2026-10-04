@@ -1,6 +1,6 @@
 # KinetixFitt — Project Reality
 
-Última actualización: 2026-09-17.
+Última actualización: 2026-10-05.
 
 Este archivo es un mapa operativo, no una promesa de producción. El código, las migraciones y los checks vivos son la fuente de verdad.
 
@@ -16,6 +16,13 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 - apps/mobile/tests/e2e/program-builder.spec.ts: journey real con fixtures aisladas de PostgreSQL para creación y asignación de programas.
 - CI posterior a esta iteración: los cambios han pasado typecheck/lint/build y security E2E en ejecuciones previas; el Product E2E del builder sigue bajo verificación en el run más reciente y no debe marcarse como verificado hasta que termine en verde.
 
+## Cambios verificados en la iteración actual (2026-10-05)
+
+- `apps/mobile/src/components/ai-meal-planner.tsx`: sintaxis del request corregida; el CI histórico había fallado en este archivo con TS1135. El planner además cancela la espera a los 20 s y muestra un error explícito si el proveedor no responde.
+- `apps/mobile/src/components/command-palette-pro.tsx`: las búsquedas dinámicas de ejercicios/atletas abortan requests obsoletos al cambiar la consulta o cerrar la paleta, evitando resultados fuera de orden y trabajo de red innecesario.
+- `apps/mobile/src/app/(client)/client/profile/page.tsx`: onboarding accesible desde Perfil sin depender de URL directa.
+- `apps/mobile/src/components/whatsapp-float.tsx` y recursos cliente: eliminado el destino WhatsApp ficticio; el CTA solo aparece con `NEXT_PUBLIC_WHATSAPP_NUMBER` configurado.
+- `docs/UI_UX_AUDIT.md`: actualizado para reflejar el estado real de R1/R2 y separar pendientes históricos de riesgos actuales.
 ## Estado global
 
 - `main` es la rama operativa para los cambios de lanzamiento solicitados.
