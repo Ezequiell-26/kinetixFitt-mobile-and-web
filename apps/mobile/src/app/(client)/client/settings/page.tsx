@@ -82,7 +82,12 @@ export default function ClientSettings() {
   }
 
   const types = [["workout_reminder", "Recordatorios de entrenamiento"], ["meal_reminder", "Nutrición"], ["achievement", "Progreso y logros"], ["coach_message", "Mensajes del coach"], ["payment_reminder", "Pagos y renovaciones"]] as const;
-  const channels = [["email", "Email"], ["push", "Push"], ["sms", "SMS"], ["whatsapp", "WhatsApp"]] as const;
+  const channels = [
+    ["email", "Email", true],
+    ["push", "Push", true],
+    ["sms", "SMS", false],
+    ["whatsapp", "WhatsApp", Boolean(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER)],
+  ] as const;
 
   return (
     <div className="space-y-4 max-w-[720px] pb-20">
@@ -94,14 +99,14 @@ export default function ClientSettings() {
       <Card className="border-primary/15 bg-[#0B151E]"><CardHeader><CardTitle>Apariencia</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-[#8193A5]">Tema de KinetixFitt con soporte para tu preferencia del sistema.</p><ThemeToggle /></CardContent></Card>
 
       <Card className="border-primary/15 bg-[#0B151E]"><CardHeader><CardTitle className="flex items-center gap-2"><Bell size={17} className="text-primary" /> Notificaciones</CardTitle></CardHeader><CardContent className="space-y-4">
-        <div className="grid gap-2 sm:grid-cols-2">{channels.map(([key, label]) => <button key={key} type="button" onClick={() => toggleChannel(key)} className={`flex items-center justify-between rounded-xl border px-3 py-3 text-xs font-bold ${preferences.channels[key] ? "border-primary/20 bg-primary/[0.05] text-white" : "border-white/[0.06] bg-white/[0.02] text-zinc-500"}`}><span>{label}</span><span className="text-primary">{preferences.channels[key] ? "ACTIVO" : "OFF"}</span></button>)}</div>
+        <div className="grid gap-2 sm:grid-cols-2">{channels.map(([key, label, available]) => <button key={key} type="button" onClick={() => available && toggleChannel(key)} disabled={!available || savingPrefs} aria-disabled={!available} title={!available ? "Este canal todavía no está configurado." : undefined} className={`flex items-center justify-between rounded-xl border px-3 py-3 text-xs font-bold ${preferences.channels[key] ? "border-primary/20 bg-primary/[0.05] text-white" : "border-white/[0.06] bg-white/[0.02] text-zinc-500"}`}><span>{label}</span><span className="text-primary">{!available ? "NO DISP." : preferences.channels[key] ? "ACTIVO" : "OFF"}</span></button>)}</div>
         <div className="space-y-2">{types.map(([key, label]) => <button key={key} type="button" onClick={() => toggleType(key)} disabled={savingPrefs} className="flex w-full items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-left text-xs"><span className="text-zinc-300">{label}</span><span className={`h-5 w-9 rounded-full p-0.5 ${preferences.types.includes(key) ? "bg-primary" : "bg-zinc-800"}`}><span className={`block h-4 w-4 rounded-full bg-white ${preferences.types.includes(key) ? "translate-x-4" : "translate-x-0"}`} /></span></button>)}</div>
         {savingPrefs && <p className="text-[11px] text-[#8193A5]">Guardando...</p>}
       </CardContent></Card>
 
       <Card className="border-primary/15 bg-[#0B151E]"><CardHeader><CardTitle className="flex items-center gap-2"><Shield size={17} className="text-primary" /> Seguridad</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-xs text-[#8193A5]">Tu sesión se valida en servidor. Cerrá todas las sesiones desde cualquier dispositivo cuando sea necesario.</p><div className="space-y-2">{sessions.map((session) => <div key={session.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-bold text-white">{session.current ? "Sesión actual" : "Sesión activa"}</p>{session.current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">ACTUAL</span>}</div><p className="mt-1 text-[11px] text-[#8193A5]">{session.userAgent || "Cliente desconocido"}</p><p className="mt-1 text-[11px] text-zinc-600">Último uso: {new Date(session.lastUsed).toLocaleString("es-AR")}</p></div>)}</div><Button variant="outline" onClick={() => void revokeAll()} disabled={loading} className="w-full">Cerrar todas las sesiones</Button></CardContent></Card>
 
-      <Card><CardHeader><CardTitle>Cuenta</CardTitle></CardHeader><CardContent className="space-y-3"><Link href="/forgot-password" className="block"><Button variant="outline" className="w-full gap-2"><KeyRound size={16} /> Cambiar contraseña</Button></Link><Button variant="ghost" className="h-12 w-full gap-2 border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10" onClick={() => void logout}><LogOut size={16}/> Cerrar sesión</Button></CardContent></Card>
+      <Card><CardHeader><CardTitle>Cuenta</CardTitle></CardHeader><CardContent className="space-y-3"><Link href="/forgot-password" className="block"><Button variant="outline" className="w-full gap-2"><KeyRound size={16} /> Cambiar contraseña</Button></Link><Button variant="ghost" className="h-12 w-full gap-2 border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10" onClick={() => void logout()}><LogOut size={16}/> Cerrar sesión</Button></CardContent></Card>
     </div>
   );
 }
