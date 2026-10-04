@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
+const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "");
+
 const resources = [
   {id:"1", title:"Guía de Técnica: Sentadilla Perfecta", type:"Video", duration:"8 min", premium:true, thumb:"/exercises/free/Barbell_Bench_Press_-_Medium_Grip.webp"},
   {id:"2", title:"E-book: Nutrición para Hipertrofia", type:"PDF", duration:"24 pág", premium:true, thumb:"/exercises/free/Ab_Roller.webp"},
@@ -47,8 +49,12 @@ export default function ResourcesPage(){
       <Card>
         <CardHeader><CardTitle>¿Necesitás ayuda?</CardTitle></CardHeader>
         <CardContent className="flex gap-2">
-          <Link href="/client/messages" className="flex-1"><Button variant="accent" className="w-full">Chatear con tu coach</Button></Link>
-          <a href="https://wa.me/5490000000000" target="_blank" className="flex-1"><Button variant="outline" className="w-full">WhatsApp</Button></a>
+          <Link href="/client/messages" className={whatsappNumber ? "flex-1" : "w-full"}><Button variant="accent" className="w-full">Chatear con tu coach</Button></Link>
+          {whatsappNumber && (
+            <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="flex-1">
+              <Button variant="outline" className="w-full">WhatsApp</Button>
+            </a>
+          )}
         </CardContent>
       </Card>
     </div>
