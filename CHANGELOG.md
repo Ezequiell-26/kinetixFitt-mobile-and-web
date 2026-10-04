@@ -1,3 +1,11 @@
+## [2026-10-05] — Reliability / UX cleanup
+
+- Corregido el request JSON roto de `AiMealPlanner` que impedía el `typecheck` móvil (TS1135).
+- Añadido timeout de 20 s y cancelación de requests en `AiMealPlanner`.
+- Cancelación de búsquedas obsoletas en `CommandPalettePro`.
+- Añadido acceso al onboarding desde `/client/profile`.
+- Eliminados destinos WhatsApp ficticios; ahora dependen de `NEXT_PUBLIC_WHATSAPP_NUMBER`.
+- Sincronizados `docs/UI_UX_AUDIT.md`, `.ai/PROJECT_REALITY.md` y `docs/FEATURE_MAP.md` con el estado real.
 # Changelog
 
 Todas las versiones notables de KINETIXFITT.
