@@ -72,7 +72,7 @@ function preferencesPayload(prefs: PreferenceRecord) {
       email: prefs.emailEnabled,
       push: prefs.pushEnabled,
       sms: prefs.smsEnabled,
-      whatsapp: prefs.whatsappEnabled,
+      whatsapp: prefs.whatsappEnabled && whatsappConfigured,
     },
   };
 }
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
   const schedule = data.schedule;
   const enabled = data.enabled ?? DEFAULTS.enabled;
   const pushEnabled = (channels?.push ?? DEFAULTS.channels.push) && enabled;
+  const whatsappConfigured = Boolean(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, ""));
 
   const disabledChannels = {
     emailEnabled: false,
@@ -116,7 +117,8 @@ export async function POST(request: Request) {
     emailEnabled: (channels?.email ?? DEFAULTS.channels.email) && enabled,
     pushEnabled,
     smsEnabled: (channels?.sms ?? DEFAULTS.channels.sms) && enabled,
-    whatsappEnabled: (channels?.whatsapp ?? DEFAULTS.channels.whatsapp) && enabled,
+    // WhatsApp solo se persiste como activo cuando existe un número real configurado.
+    whatsappEnabled: (channels?.whatsapp ?? DEFAULTS.channels.whatsapp) && enabled && whatsappConfigured,
   };
 
   const channelUpdate = enabled
