@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,18 @@ export default function ClientProfilePage(){
     <div><h1 className="text-2xl font-display font-bold text-white">Mi Perfil</h1><p className="text-sm text-zinc-400">Datos personales, objetivos físicos y preferencias</p></div>
     {error&&<div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-200"><AlertTriangle size={15} className="mt-0.5"/>{error}</div>}
     {savedSuccess&&<div role="status" className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs font-bold text-primary"><Check size={16}/> Tus cambios fueron guardados.</div>}
+
+    <Card className="border-primary/20 bg-primary/[0.04]">
+      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-bold text-white">¿Querés actualizar tu configuración inicial?</p>
+          <p className="mt-1 text-xs text-zinc-500">Volvé al onboarding para revisar objetivo, nivel, disponibilidad y equipamiento.</p>
+        </div>
+        <Link href="/client/onboarding">
+          <Button variant="outline" className="min-h-[44px] w-full sm:w-auto">Abrir onboarding</Button>
+        </Link>
+      </CardContent>
+    </Card>
 
     <Card className="border-primary/15 bg-[#0B151E]"><CardContent className="flex items-center gap-4 p-5"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-black text-black">{name?.[0]?.toUpperCase()||"A"}</div><div className="min-w-0 flex-1"><h2 className="truncate text-lg font-bold text-white">{name||"Atleta"}</h2><p className="truncate text-xs text-zinc-400">{profile?.email}</p><div className="mt-2 flex flex-wrap gap-2"><Badge variant="success" className="text-[10px]">{profile?.status||"ACTIVO"}</Badge><Badge variant="muted" className="text-[10px]">{profile?.plan||"PERSONALIZADO"}</Badge><Badge variant="accent" className="text-[10px]">{goal.replace("_"," ")}</Badge></div></div></CardContent></Card>
 
