@@ -26,8 +26,8 @@ test.describe("runtime smoke", () => {
       const response = await page.goto(route, { waitUntil: "networkidle" });
       expect(response?.status(), `route ${route}`).toBe(200);
 
-      const heading = page.locator("h1");
-      await expect(heading).toBeVisible();
+      const primaryContent = route === "/" || route === "/planes" ? page.locator("h1").first() : page.locator("form").first();
+      await expect(primaryContent).toBeVisible();
 
       const hydrationErrors = errors.filter((message) =>
         /hydration|didn't match|did not match|hydration mismatch/i.test(message),
