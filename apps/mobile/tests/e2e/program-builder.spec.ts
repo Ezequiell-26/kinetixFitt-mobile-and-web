@@ -82,7 +82,7 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
       expect(mePayload.body?.user?.role ?? mePayload.body?.role).toBe("TRAINER");
 
       await page.goto("/trainer/studio");
-      await page.getByRole("button", { name: "Plataformas" }).click();
+      await page.getByRole("tab", { name: "Plataformas" }).click();
 
       await expect(page.getByText("Everfit UX Builder")).toBeVisible();
       await expect(page.getByText("Biblioteca")).toBeVisible();
