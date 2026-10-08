@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { SiteNav } from "@/components/landing/site-nav";
 import { SiteFooter } from "@/components/landing/site-footer";
-import { OptimizedImage } from "@/components/ui/optimized-image";
 import { useTranslation } from "@/hooks/use-translation";
 
 const groups = [
@@ -30,11 +29,11 @@ const groups = [
   },
   {
     icon: Dumbbell,
-    title: "+100 ejercicios con guía",
+    title: "Biblioteca de ejercicios",
     desc: "Biblioteca disponible sin conexión: instrucciones, músculos trabajados y equipo necesario de cada ejercicio.",
     href: "/client/workout",
     cta: "Explorar ejercicios",
-    features: ["Videos 3D", "Instrucciones paso a paso", "Músculos trabajados"],
+    features: ["Guías de ejecución", "Músculos trabajados", "Equipo requerido"],
     image: "/features/biblioteca-ejercicios.jpg",
   },
   {
@@ -43,7 +42,7 @@ const groups = [
     desc: "HIIT, Tabata, EMOM, Pomodoro y descansos entre series, sin salir de tu sesión de entreno.",
     href: "/client/timers",
     cta: "Abrir cronómetros",
-    features: ["Múltiples modos", "Personalizable", "Alertas sonoras"],
+    features: ["Intervalos configurables", "Descanso entre series", "Alertas sonoras"],
     image: "/features/cronometros.jpg",
   },
   {
@@ -61,12 +60,12 @@ const groups = [
     desc: "Mensajes privados y check-ins semanales con respuesta real de tu coach. Nada de bots.",
     href: "/client/messages",
     cta: "Abrir mensajes",
-    features: ["Respuesta rápida", "Check-ins semanales", "Soporte 24/7"],
+    features: ["Mensajes privados", "Check-ins", "Contexto del atleta"],
     image: "/features/mensajes-coach.jpg",
   },
   {
     icon: Camera,
-    title: "Progreso 100% privado",
+    title: "Progreso privado",
     desc: "Peso, medidas y fotos de progreso visibles solo para vos y tu entrenador. Comparador antes/después incluido.",
     href: "/client/progress",
     cta: "Ver mi progreso",
@@ -110,14 +109,14 @@ export default function FuncionesView() {
         <section className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 border border-zinc-800 mb-6">
             <Sparkles size={16} className="text-[#34D399]" />
-            <span className="text-sm font-medium">6 herramientas esenciales</span>
+            <span className="text-sm font-medium">Herramientas esenciales</span>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-balance">
             Todo tu entreno,{" "}
             <span className="text-[#34D399]">en un solo lugar</span>
           </h1>
           <p className="mt-4 text-lg text-zinc-400 max-w-2xl mx-auto">
-            Seis herramientas reales que usás todos los días. Diseñadas para maximizar tus resultados sin complicaciones.
+            Entrenamiento, progreso y comunicación reunidos en una sola experiencia, con cada flujo conectado al backend real.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
@@ -142,18 +141,12 @@ export default function FuncionesView() {
               key={g.title}
               className="group rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden hover:border-[#34D399]/50 transition-all duration-300 hover:shadow-lg hover:shadow-[#34D399]/10"
             >
-              <div className="relative h-48 bg-zinc-900 overflow-hidden">
-                <OptimizedImage
-                  src={g.image}
-                  alt={g.title}
-                  width={400}
-                  height={200}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  placeholder="blur"
-                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQAAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AfwAAAP//2Q=="
-                />
-                <div className="absolute top-4 left-4 p-2 rounded-lg bg-zinc-950/80 backdrop-blur-sm">
-                  <g.icon size={24} className="text-[#34D399]" />
+              <div className="relative h-36 overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border-b border-zinc-800">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(52,211,153,.12),transparent_52%)]" />
+                <div className="relative flex h-full items-center justify-center">
+                  <div className="grid h-16 w-16 place-items-center rounded-2xl border border-[#34D399]/20 bg-[#34D399]/10 text-[#34D399]">
+                    <g.icon size={30} />
+                  </div>
                 </div>
               </div>
               <div className="p-6">
@@ -182,69 +175,40 @@ export default function FuncionesView() {
         <section id="demo" className="mb-20">
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-8 lg:p-12">
             <div className="text-center mb-8">
-              <h2 className="text-2xl lg:text-3xl font-black">Mirá cómo funciona</h2>
-              <p className="mt-2 text-zinc-400">Una vista rápida de todas las funciones en acción</p>
+              <h2 className="text-2xl lg:text-3xl font-black">Una vista del producto</h2>
+              <p className="mt-2 text-zinc-400">La experiencia se organiza alrededor de tres acciones: planificar, registrar y revisar.</p>
             </div>
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button className="group flex items-center gap-4 px-8 py-4 rounded-full bg-[#34D399]/20 border border-[#34D399] hover:bg-[#34D399]/30 transition-all">
-                  <div className="w-12 h-12 rounded-full bg-[#34D399] flex items-center justify-center">
-                    <Play size={24} className="text-black ml-1" />
-                  </div>
-                  <span className="font-black text-[#34D399]">Reproducir video</span>
-                </button>
-              </div>
-              <OptimizedImage
-                src="/features/video-thumbnail.jpg"
-                alt="Video demo de funciones"
-                width={1280}
-                height={720}
-                className="w-full h-full object-cover opacity-50"
-              />
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                { title: "Planificar", value: "Programa + sesiones", detail: "Tu coach crea y asigna la estructura de entrenamiento." },
+                { title: "Registrar", value: "Series + progreso", detail: "La sesión guarda cargas, repeticiones y métricas." },
+                { title: "Revisar", value: "Check-ins + analytics", detail: "Atleta y coach ven el historial para tomar decisiones." },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-zinc-800 bg-[#09090B] p-5">
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-[#34D399]">{item.title}</div>
+                  <div className="mt-3 text-lg font-black">{item.value}</div>
+                  <p className="mt-2 text-sm leading-6 text-zinc-400">{item.detail}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Trust without fabricated social proof */}
         <section className="mb-20">
           <div className="text-center mb-10">
-            <h2 className="text-2xl lg:text-3xl font-black">Lo que dicen nuestros clientes</h2>
-            <p className="mt-2 text-zinc-400">Resultados reales de personas reales</p>
+            <h2 className="text-2xl lg:text-3xl font-black">Hecho para el trabajo real</h2>
+            <p className="mt-2 text-zinc-400">Sin métricas comerciales inventadas ni pantallas de demo que simulan datos reales.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
-              <div
-                key={testimonial.name}
-                className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
-              >
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className="w-5 h-5 text-[#34D399]"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-zinc-300 mb-4">"{testimonial.content}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden">
-                    <OptimizedImage
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">{testimonial.name}</p>
-                    <p className="text-xs text-zinc-400">{testimonial.role}</p>
-                  </div>
-                </div>
+            {[
+              { title: "Atletas", text: "Entrenamiento, progreso, check-ins, mensajes y recursos en un solo lugar." },
+              { title: "Entrenadores", text: "Programas, clientes, asignaciones, analíticas y operaciones centralizadas." },
+              { title: "Datos reales", text: "Cuando una integración externa no está configurada, el producto lo muestra explícitamente." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+                <h3 className="text-lg font-black">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.text}</p>
               </div>
             ))}
           </div>
@@ -310,7 +274,7 @@ export default function FuncionesView() {
               ¿Listo para empezar tu transformación?
             </h2>
             <p className="text-zinc-400 mb-8 max-w-xl mx-auto">
-              Unite a miles de clientes que ya alcanzaron sus objetivos con KinetixFitt.
+              Creá tu cuenta de atleta y empezá con una estructura clara de entrenamiento y progreso.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
