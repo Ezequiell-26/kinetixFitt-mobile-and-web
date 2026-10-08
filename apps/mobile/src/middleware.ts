@@ -50,8 +50,8 @@ function buildCsp(nonce: string): string {
   ].join("; ");
 }
 
-function applyCsp(response: NextResponse, nonce: string): NextResponse {
-  response.headers.set("Content-Security-Policy", buildCsp(nonce));
+function applyCsp(response: NextResponse, nonce: string, csp = buildCsp(nonce)): NextResponse {
+  response.headers.set("Content-Security-Policy", csp);
   response.headers.set("x-nonce", nonce);
   response.headers.set("x-csp-nonce", nonce);
   return response;
@@ -100,28 +100,32 @@ export async function middleware(req: NextRequest) {
     console.error("[CSP] secure nonce generation failed", error);
     return new NextResponse("Security configuration error", { status: 500 });
   }
+  const csp = buildCsp(nonce);
   const requestHeaders = new Headers(req.headers);
+  // Next.js needs the CSP on the request headers as well as the response
+  // so it can propagate the nonce to framework hydration scripts.
+  requestHeaders.set("Content-Security-Policy", csp);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("x-csp-nonce", nonce);
   const ip = getClientIp(req);
 
   const csrfResponse = csrfCheck(req);
-  if (csrfResponse) return applyCsp(csrfResponse, nonce);
+  if (csrfResponse) return applyCsp(csrfResponse, nonce, csp);
 
   if (path.startsWith("/api/auth/login")) {
-    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/auth/register")) {
-    const r = await checkRateLimit(ip, "register", RATE_LIMIT_PROFILES.register); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "register", RATE_LIMIT_PROFILES.register); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/auth/forgot-password")) {
-    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/auth/reset-password")) {
-    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "auth", RATE_LIMIT_PROFILES.auth); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/uploads")) {
-    const r = await checkRateLimit(ip, "upload", RATE_LIMIT_PROFILES.upload); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "upload", RATE_LIMIT_PROFILES.upload); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/messages")) {
-    const r = await checkRateLimit(ip, "messages", RATE_LIMIT_PROFILES.messages); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "messages", RATE_LIMIT_PROFILES.messages); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   } else if (path.startsWith("/api/")) {
-    const r = await checkRateLimit(ip, "api", RATE_LIMIT_PROFILES.api); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce);
+    const r = await checkRateLimit(ip, "api", RATE_LIMIT_PROFILES.api); if (!r.success) return applyCsp(rateLimitResponse(r.resetMs), nonce, csp);
   }
 
   if (path === "/") {
@@ -130,11 +134,11 @@ export async function middleware(req: NextRequest) {
       try {
         const { payload } = await jose.jwtVerify(token, SECRET);
         const role = (payload as unknown as { role: string }).role;
-        if (role === "TRAINER") return applyCsp(NextResponse.redirect(new URL("/trainer/dashboard", req.url)), nonce);
-        if (role === "CLIENT") return applyCsp(NextResponse.redirect(new URL("/client/dashboard", req.url)), nonce);
+        if (role === "TRAINER") return applyCsp(NextResponse.redirect(new URL("/trainer/dashboard", req.url)), nonce, csp);
+        if (role === "CLIENT") return applyCsp(NextResponse.redirect(new URL("/client/dashboard", req.url)), nonce, csp);
       } catch {}
     }
-    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce, csp);
   }
 
   if (path === "/login" || path === "/register") {
@@ -143,25 +147,25 @@ export async function middleware(req: NextRequest) {
       try {
         const { payload } = await jose.jwtVerify(token, SECRET);
         const role = (payload as unknown as { role: string }).role;
-        return applyCsp(NextResponse.redirect(new URL(role === "TRAINER" ? "/trainer/dashboard" : "/client/dashboard", req.url)), nonce);
+        return applyCsp(NextResponse.redirect(new URL(role === "TRAINER" ? "/trainer/dashboard" : "/client/dashboard", req.url)), nonce, csp);
       } catch {}
     }
-    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce, csp);
   }
 
   const isTrainer = path.startsWith("/trainer");
   const isClient = path.startsWith("/client");
-  if (!isTrainer && !isClient) return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+  if (!isTrainer && !isClient) return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce, csp);
   const token = req.cookies.get("ec_token")?.value;
-  if (!token) return applyCsp(NextResponse.redirect(new URL("/login", req.url)), nonce);
+  if (!token) return applyCsp(NextResponse.redirect(new URL("/login", req.url)), nonce, csp);
   try {
     const { payload } = await jose.jwtVerify(token, SECRET);
     const role = (payload as unknown as { role: string }).role;
-    if (isTrainer && role !== "TRAINER") return applyCsp(NextResponse.redirect(new URL("/client/dashboard", req.url)), nonce);
-    if (isClient && role !== "CLIENT") return applyCsp(NextResponse.redirect(new URL("/trainer/dashboard", req.url)), nonce);
-    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+    if (isTrainer && role !== "TRAINER") return applyCsp(NextResponse.redirect(new URL("/client/dashboard", req.url)), nonce, csp);
+    if (isClient && role !== "CLIENT") return applyCsp(NextResponse.redirect(new URL("/trainer/dashboard", req.url)), nonce, csp);
+    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }), nonce, csp);
   } catch {
-    return applyCsp(NextResponse.redirect(new URL("/login", req.url)), nonce);
+    return applyCsp(NextResponse.redirect(new URL("/login", req.url)), nonce, csp);
   }
 }
 
