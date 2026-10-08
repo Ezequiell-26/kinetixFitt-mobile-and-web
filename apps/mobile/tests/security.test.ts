@@ -7,6 +7,11 @@ import { assertTrainerOwnsClient, validateClientIdForTrainer } from "../src/lib/
 import { sanitizePath, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } from "../src/lib/security";
 
 const BASE = process.env.BASE_URL || "http://localhost:3001";
+
+if (!process.env.DATABASE_URL?.startsWith("postgresql")) {
+  console.error("SKIPPED: security E2E requires DATABASE_URL=postgresql.");
+  process.exit(2);
+}
 const prisma = new PrismaClient();
 const TAG = `sectest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const PASSWORD = "SecTest!2026";
