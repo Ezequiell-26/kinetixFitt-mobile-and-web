@@ -95,7 +95,7 @@ Bundle no afectado, pero TTFB mata conversión móvil (3G).
 - `apps/web/components/JsonLd.tsx` (nuevo)
 - `apps/web/app/layout.tsx` (inyectar `<JsonLd />` + fix `metadataBase: new URL('https://kinetixfitt.com')`)
 - `apps/web/next.config.mjs` (añadir `headers()` y `images.formats: ['image/avif','image/webp']`)
-- `apps/web/public/og-image.png` (generado o eliminado si se usa route)
+- `apps/web/app/opengraph-image.tsx` genera la imagen OG; no se mantiene un PNG duplicado
 
 **Esfuerzo:** **S** (1 día)  
 **Impacto conversión:** **+35% tráfico orgánico 90d**, **+22% CTR** en SERP (rich results FAQ + stars), **+18% share conversion** WhatsApp (OG real).
