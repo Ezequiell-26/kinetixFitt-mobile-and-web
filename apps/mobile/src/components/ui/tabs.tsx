@@ -34,8 +34,10 @@ export function Tabs({
           return (
             <button
               key={t.id}
+              type="button"
               role="tab"
               aria-selected={isActive}
+              aria-controls={`tabpanel-${t.id}`}
               onClick={() => setActive(t.id)}
               className={cn(
                 "relative shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none whitespace-nowrap",
@@ -60,7 +62,7 @@ export function Tabs({
           );
         })}
       </div>
-      <div>{children(active)}</div>
+      <div id={`tabpanel-${active}`} role="tabpanel" aria-labelledby={active}>{children(active)}</div>
     </div>
   );
 }
