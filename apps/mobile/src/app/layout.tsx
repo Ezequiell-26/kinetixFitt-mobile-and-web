@@ -56,7 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <script src="/theme-init.js" />
       </head>
       <body className={`${inter.variable} ${grotesk.variable} min-h-screen text-zinc-100 antialiased selection:bg-primary selection:text-black`} style={{ backgroundColor: BRAND.colors.dark }}>
         <PostHogProvider>
