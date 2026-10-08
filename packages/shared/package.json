@@ -9,6 +9,7 @@
     "./types": "./src/types/index.ts",
     "./utils": "./src/utils/index.ts",
     "./components": "./src/components/index.tsx",
+    "./components/skeleton": "./src/components/skeleton.tsx",
     "./constants": "./src/constants/index.ts"
   },
   "scripts": {
