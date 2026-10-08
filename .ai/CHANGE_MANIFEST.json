@@ -13,7 +13,10 @@
     "apps/**",
     "docs/**",
     "README.md",
-    "*.md"
+    "*.md",
+    ".gitignore",
+    "electron/**",
+    "x*.txt"
   ],
   "forbiddenPaths": [
     ".env",
