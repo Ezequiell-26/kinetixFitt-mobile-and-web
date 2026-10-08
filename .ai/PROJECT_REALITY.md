@@ -139,10 +139,9 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 - PWA existe.
 - Android/iOS usan Capacitor como wrappers online contra `CAPACITOR_SERVER_URL`.
 - Capacitor ahora usa `apps/mobile/native-shell` como `webDir`, por lo que no empaqueta automáticamente el árbol completo de `public/` (incluyendo ejercicios, audio o vídeos) dentro del paquete nativo.
-- Windows/macOS tienen un shell Tauri 2 separado en `apps/desktop` que carga `https://app.kinetixfitt.com` en producción y no incrusta los assets de la web; Electron se conserva como fallback de transición.
-- Tauri permite usar una URL remota como `frontendDist` sin assets embebidos. citeturn221957search1turn979271search7
+- El shell Electron, cuando se necesita desktop, vive dentro de `apps/mobile/electron` y no constituye otra aplicación.
 - Android de producción tiene workflow de AAB firmado basado en GitHub Secrets.
-- Packaging Android/iOS/macOS/Windows end-to-end sigue UNVERIFIED hasta generar y probar artefactos reales.
+- Packaging Android/iOS end-to-end sigue UNVERIFIED hasta generar y probar artefactos reales.
 - 3D usa Three.js/WebGL; no afirmar WebGPU/Web Workers/OffscreenCanvas sin implementación y medición.
 
 ## Quality gates
