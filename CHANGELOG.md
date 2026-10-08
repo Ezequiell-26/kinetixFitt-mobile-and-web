@@ -1,3 +1,10 @@
+## [2026-10-09] — Runtime / build hardening
+
+- Separado /reset-password en una página servidor y formulario cliente dentro de Suspense para cumplir el prerender de Next.js 15.
+- Eliminado el boundary global loading.tsx que dejaba la navegación inicial atrapada bajo la política CSP actual.
+- Ajustada la CSP para mantener nonces en scripts inline sin depender de strict-dynamic mientras Next 15.5 emite ciertos boundary chunks sin nonce.
+- El build standalone ahora empaqueta automáticamente .next/static y public junto al servidor runnable; el artefacto deja de depender de copiar assets manualmente durante el deploy.
+
 ## [2026-10-08] — Repository structure consolidation
 
 ### Arquitectura
