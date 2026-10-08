@@ -54,7 +54,16 @@ export function initPostHog(): void {
   if (_initialized) return;
   if (typeof window === "undefined") return;
 
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY || "phc_placeholder_posthog_key_replace_me";
+  const configuredKey = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim();
+  if (!configuredKey || configuredKey.startsWith("phc_placeholder")) {
+    if (process.env.NODE_ENV === "development") {
+      console.info("[PostHog] Disabled — NEXT_PUBLIC_POSTHOG_KEY is not configured.");
+    }
+    _initialized = false;
+    return;
+  }
+
+  const key = configuredKey;
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
   try {
     posthog.init(key, {
