@@ -110,7 +110,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [windows-exe, mac-dmg, android-apk, ios-simulator]
+    needs: [android-apk, ios-simulator]
     runs-on: ubuntu-latest
     permissions:
       contents: write
