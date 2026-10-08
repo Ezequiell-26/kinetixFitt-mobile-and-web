@@ -1,6 +1,6 @@
 # KinetixFitt — Project Reality
 
-Última actualización: 2026-10-05.
+Última actualización: 2026-10-08.
 
 Este archivo es un mapa operativo, no una promesa de producción. El código, las migraciones y los checks vivos son la fuente de verdad.
 
@@ -27,7 +27,7 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 
 - `main` es la rama operativa para los cambios de lanzamiento solicitados.
 - Prisma usa PostgreSQL (`DATABASE_URL` + `DIRECT_URL`).
-- Monorepo con `apps/mobile`, `apps/web`, `apps/desktop` y paquetes compartidos.
+- Monorepo con `apps/mobile`, `apps/web` y paquetes compartidos; no existe una tercera aplicación de primer nivel.
 - `apps/web` y `apps/mobile` se despliegan como proyectos separados.
 - No afirmar `PRODUCTION READY`, `VERIFIED`, `AI-powered` o `COMPLETE` sin evidencia actual.
 
@@ -148,7 +148,7 @@ Este archivo es un mapa operativo, no una promesa de producción. El código, la
 ## Quality gates
 
 - CI ejecuta install, typecheck, lint, migrations, seed, unit tests, build mobile, security HTTP E2E y build web.
-- El workflow nativo genera Windows/macOS con Tauri y Android/iOS con Capacitor.
+- El workflow nativo genera Android/iOS con Capacitor.
 - `npm run test:unit` es la suite offline/unittest.
 - `npm run test:security` requiere un servidor Next real.
 - La suite de seguridad usa fixtures aisladas y no cuentas demo.
