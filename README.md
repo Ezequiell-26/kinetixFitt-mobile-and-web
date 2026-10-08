@@ -7,9 +7,8 @@ Plataforma unificada de fitness para atletas y entrenadores, con aplicación web
 ```text
 kinetixFitt-mobile-and-web/
 ├── apps/
-│   ├── web/            # Next.js — web pública + dashboard
-│   ├── mobile/         # Next.js — aplicación dinámica + API + PWA + Capacitor
-│   └── desktop/        # Tauri 2 — shell Windows/macOS ligero
+│   ├── web/            # Web pública + experiencias web/SEO
+│   └── mobile/         # App principal + API + PWA + Capacitor + Electron fallback
 ├── packages/
 │   ├── shared/
 │   ├── ai-models/
@@ -26,7 +25,6 @@ kinetixFitt-mobile-and-web/
 
 - Node.js 22 recomendado (CI usa Node 22)
 - npm 10+ recomendado
-- Rust toolchain para builds Tauri de Windows/macOS
 - PostgreSQL/Supabase para producción
 - Upstash Redis para rate limiting distribuido
 - Proveedor de email para transaccionales
@@ -154,4 +152,4 @@ Consulta:
 
 MIT — ver `LICENSE`.
 
-**Actualizado:** 2026-09-17
+**Actualizado:** 2026-10-08
