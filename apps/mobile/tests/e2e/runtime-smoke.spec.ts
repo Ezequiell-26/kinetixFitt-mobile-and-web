@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/planes"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/planes", "/funciones"];
 
 test.describe("runtime smoke", () => {
   test("public routes render without console/page errors or 4xx/5xx resources", async ({ page }) => {
@@ -26,7 +26,10 @@ test.describe("runtime smoke", () => {
       const response = await page.goto(route, { waitUntil: "networkidle" });
       expect(response?.status(), `route ${route}`).toBe(200);
 
-      const primaryContent = route === "/" || route === "/planes" ? page.locator("h1").first() : page.locator("form").first();
+      const primaryContent =
+        route === "/" || route === "/planes" || route === "/funciones"
+          ? page.locator("h1").first()
+          : page.locator("form").first();
       await expect(primaryContent).toBeVisible();
 
       const hydrationErrors = errors.filter((message) =>
