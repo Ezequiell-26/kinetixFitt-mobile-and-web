@@ -63,7 +63,8 @@
   - Acceso a APIs nativas (cámara, notificaciones push, HealthKit, Google Fit)
   - Instalación: `npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android`
 
-#### 4. **Tauri** (alternativa a Electron)
+#### 4. **Desktop shell**
+La arquitectura activa mantiene Electron dentro de `apps/mobile` como shell de escritorio; no se mantiene un segundo proyecto Tauri.
 - **Estado:** ❌ NO EXISTE
 - **Ventaja:** Apps más livianas (Rust + WebView nativo)
 - **Desventaja:** Requiere reconfiguración completa

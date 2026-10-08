@@ -7,9 +7,8 @@ Plataforma unificada de fitness para atletas y entrenadores, con aplicación web
 ```text
 kinetixFitt-mobile-and-web/
 ├── apps/
-│   ├── web/            # Next.js — web pública + dashboard
-│   ├── mobile/         # Next.js — aplicación dinámica + API + PWA + Capacitor
-│   └── desktop/        # Tauri 2 — shell Windows/macOS ligero
+│   ├── web/            # Web pública + experiencias web/SEO
+│   └── mobile/         # App principal + API + PWA + Capacitor + Electron fallback
 ├── packages/
 │   ├── shared/
 │   ├── ai-models/
@@ -20,13 +19,12 @@ kinetixFitt-mobile-and-web/
 └── package.json
 ```
 
-`apps/web` y `apps/mobile` se despliegan como aplicaciones separadas. `apps/desktop` es únicamente el shell nativo de escritorio y carga la aplicación móvil/API desde HTTPS en producción, evitando empaquetar los assets completos de la web. Electron se conserva como fallback de transición.
+`apps/web` y `apps/mobile` son las dos únicas aplicaciones de primer nivel. La capacidad desktop es un shell de `apps/mobile/electron`, por lo que no existe un tercer proyecto desktop.
 
 ## Requisitos
 
 - Node.js 22 recomendado (CI usa Node 22)
 - npm 10+ recomendado
-- Rust toolchain para builds Tauri de Windows/macOS
 - PostgreSQL/Supabase para producción
 - Upstash Redis para rate limiting distribuido
 - Proveedor de email para transaccionales
@@ -61,12 +59,6 @@ Solo mobile/app dinámica:
 npm run mobile
 ```
 
-Desktop Tauri:
-
-```bash
-npm run desktop:dev
-```
-
 Build completo:
 
 ```bash
@@ -78,11 +70,7 @@ Build individual:
 ```bash
 npm run web:build
 npm run mobile:build
-npm run desktop:build:win
-npm run desktop:build:mac
 ```
-
-Los builds desktop Tauri cargan `https://app.kinetixfitt.com` en producción y no incrustan los assets de la aplicación web.
 
 ## Quality gates
 
@@ -140,13 +128,7 @@ Este proyecto debe tener las variables privadas del backend. No se deben copiar 
 
 ## Native release
 
-El workflow `.github/workflows/native.yml` genera:
-
-- Windows: instalador NSIS con Tauri.
-- macOS: DMG con Tauri.
-- Android: APK de prueba con Capacitor usando un shell mínimo.
-- iOS: build de Simulator con Capacitor usando el mismo shell mínimo.
-
+El workflow `.github/workflows/native.yml` genera Android e iOS desde `apps/mobile` mediante Capacitor. Los shells desktop se consideran infraestructura de la aplicación principal y no una tercera aplicación.
 Para Android de producción, `.github/workflows/android-release.yml` genera un AAB firmado. Requiere los secrets de GitHub correspondientes al keystore y firma.
 
 Para iOS, el build de App Store requiere un entorno macOS con certificados/provisioning profiles de Apple; se documenta en `docs/RELEASE_RUNBOOK.md`.
@@ -170,4 +152,4 @@ Consulta:
 
 MIT — ver `LICENSE`.
 
-**Actualizado:** 2026-09-17
+**Actualizado:** 2026-10-08

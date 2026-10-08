@@ -38,19 +38,36 @@ if (!Array.isArray(manifest.requiredChecks) || manifest.requiredChecks.length ==
 
 const baseRef = process.env.AI_CHANGE_BASE || 'HEAD^1';
 const headRef = process.env.AI_CHANGE_HEAD || 'HEAD';
-let changed;
+let changes;
 if (args.has('--working-tree')) {
-  changed = runGit('status', '--porcelain', '--untracked-files=all')
+  changes = runGit('status', '--porcelain', '--untracked-files=all')
     .split('\n').filter(Boolean)
-    .map(line => line.slice(3));
+    .map(line => ({
+      status: line.slice(0, 2).trim() || '??',
+      file: line.slice(3),
+    }));
 } else {
-  changed = runGit('diff', '--name-only', `${baseRef}..${headRef}`).split('\n').filter(Boolean);
+  changes = runGit('diff', '--name-status', `${baseRef}..${headRef}`)
+    .split('\n').filter(Boolean)
+    .map(line => {
+      const parts = line.split('\t');
+      return {
+        status: parts[0],
+        file: parts.length > 2 && /^[RC]/.test(parts[0]) ? parts[parts.length - 1] : parts[1],
+      };
+    });
 }
+const changed = changes.map(change => change.file).filter(Boolean);
+const deleted = new Set(changes.filter(change => change.status === 'D').map(change => change.file));
 
 const ignored = changed.filter(file => matches(file, ['.git/**']));
 const effective = changed.filter(file => !ignored.includes(file));
-const outside = effective.filter(file => !matches(file, manifest.allowedPaths));
-const forbidden = effective.filter(file => matches(file, manifest.forbiddenPaths ?? []));
+const deletionOnlyPaths = manifest.deletionOnlyPaths ?? [];
+const outside = effective.filter(file =>
+  !matches(file, manifest.allowedPaths) &&
+  !(deleted.has(file) && matches(file, deletionOnlyPaths))
+);
+const forbidden = effective.filter(file => !deleted.has(file) && matches(file, manifest.forbiddenPaths ?? []));
 const highRisk = effective.filter(file => matches(file, manifest.highRiskPathsRequireExplicitApproval ?? []));
 const explicitApproval = manifest.approvedHighRisk === true;
 

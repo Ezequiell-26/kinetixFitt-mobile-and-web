@@ -52,6 +52,8 @@ type PreferenceRecord = {
   quietEnd: string;
 };
 
+const whatsappConfigured = Boolean(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, ""));
+
 function preferencesPayload(prefs: PreferenceRecord) {
   return {
     enabled: prefs.emailEnabled || prefs.pushEnabled || prefs.smsEnabled || prefs.whatsappEnabled,

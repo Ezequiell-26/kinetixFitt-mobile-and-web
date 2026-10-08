@@ -301,7 +301,7 @@ La aplicación está **funcional y lista para producción** en web, pero requier
 ### 4. **NO HACER (Bajo ROI)**
 ❌ Reescribir en React Native  
 ❌ Reescribir en Flutter  
-❌ Cambiar Electron por Tauri (ya configurado)  
+✅ Mantener un único shell desktop dentro de `apps/mobile/electron`; no existe un proyecto Tauri separado.
 ❌ Agregar features sin validar demanda
 
 ---

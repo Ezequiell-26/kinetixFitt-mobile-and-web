@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
 import "./kinetix-reference-theme.css";
 import { PwaRegister } from "@/components/pwa-register";
@@ -50,22 +49,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  let nonce: string | undefined;
-  try {
-    const h = await headers();
-    nonce = h.get("x-nonce") || h.get("x-csp-nonce") || undefined;
-  } catch {
-    nonce = undefined;
-  }
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('ec-theme')||'dark';document.documentElement.classList.add(t);document.documentElement.setAttribute('data-theme',t);}catch(e){}})()` }} />
       </head>
       <body className={`${inter.variable} ${grotesk.variable} min-h-screen text-zinc-100 antialiased selection:bg-primary selection:text-black`} style={{ backgroundColor: BRAND.colors.dark }}>
         <PostHogProvider>

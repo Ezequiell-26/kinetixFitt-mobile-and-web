@@ -13,7 +13,8 @@
     "apps/**",
     "docs/**",
     "README.md",
-    "*.md"
+    "*.md",
+    ".gitignore"
   ],
   "forbiddenPaths": [
     ".env",
@@ -45,5 +46,9 @@
     "apps/mobile/src/middleware.*",
     "**/*security*.*"
   ],
-  "approvedHighRisk": true
+  "approvedHighRisk": true,
+  "deletionOnlyPaths": [
+    "electron/**",
+    "x*.txt"
+  ]
 }

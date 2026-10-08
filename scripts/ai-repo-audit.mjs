@@ -181,6 +181,28 @@ function collectEnvNames(files) {
   return [...names].sort();
 }
 
+function collectTrackedStructure() {
+  const output = git("ls-files", ["-z"]);
+  if (!output) {
+    return { appDirs: [], unexpectedAppDirs: [], rootElectron: [], legacyDesktop: [], generated: [], lockfiles: [] };
+  }
+
+  const tracked = output.split("\0").filter(Boolean);
+  const appDirs = [...new Set(tracked
+    .filter((file) => file.startsWith("apps/"))
+    .map((file) => file.split("/").slice(0, 2).join("/")))].sort();
+
+  const unexpectedAppDirs = appDirs.filter((dir) => !["apps/mobile", "apps/web"].includes(dir));
+  const rootElectron = tracked.filter((file) => file.startsWith("electron/"));
+  const legacyDesktop = tracked.filter((file) => file.startsWith("apps/desktop/"));
+  const generated = tracked.filter((file) =>
+    /(^|\/)target\/|(^|\/)(node_modules|\.next|dist|build|out|coverage)(\/|$)/i.test(file)
+  );
+  const lockfiles = tracked.filter((file) => file.endsWith("package-lock.json"));
+
+  return { appDirs, unexpectedAppDirs, rootElectron, legacyDesktop, generated, lockfiles };
+}
+
 function collectTrackedSecrets() {
   const output = git("ls-files", ["-z"]);
   if (!output) return [];
@@ -222,6 +244,7 @@ const workflows = collectWorkflows();
 const signals = grepSignals(allFiles);
 const envNames = collectEnvNames(allFiles.filter((file) => /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file)));
 const trackedSensitive = collectTrackedSecrets();
+const structure = collectTrackedStructure();
 const required = requiredChecks();
 
 const branch = git("branch", ["--show-current"]) || "UNKNOWN_OR_DETACHED";
@@ -229,8 +252,19 @@ const commit = git("rev-parse", ["HEAD"]) || "UNKNOWN";
 const status = git("status", ["--short"]) || "GIT_UNAVAILABLE";
 
 const highRiskSignals = signals.filter((item) => item.highRisk && ["fake", "dangerous eval", "shell interpolation"].includes(item.signal));
+const structureErrors = [
+  ...structure.unexpectedAppDirs.map((dir) => `Unexpected first-level application: ${dir}`),
+  ...structure.rootElectron.map((file) => `Legacy root Electron tree: ${file}`),
+  ...structure.legacyDesktop.map((file) => `Legacy duplicate desktop tree: ${file}`),
+  ...structure.generated.map((file) => `Tracked generated artifact: ${file}`),
+  ...structure.lockfiles
+    .filter((file) => !["package-lock.json", "apps/web/package-lock.json"].includes(file))
+    .map((file) => `Unexpected package lockfile: ${file}`),
+];
+
 const errors = [
   ...trackedSensitive.map((file) => `Tracked sensitive-looking file: ${file}`),
+  ...structureErrors,
   ...highRiskSignals.map((item) => `High-risk signal ${item.signal} in ${item.file}`),
 ];
 
@@ -241,6 +275,7 @@ const snapshot = {
   governance: { mustRead: MUST_READ, missing: required.missing },
   inventory: {
     sourceFileCount: allFiles.length,
+    applications: structure.appDirs,
     packages,
     routes,
     testFiles: tests,
@@ -255,6 +290,14 @@ const snapshot = {
   },
   signals,
   errors,
+  structure: {
+    applications: structure.appDirs,
+    unexpectedApplications: structure.unexpectedAppDirs,
+    rootElectron: structure.rootElectron,
+    legacyDesktop: structure.legacyDesktop,
+    generatedArtifacts: structure.generated,
+    lockfiles: structure.lockfiles,
+  },
   strictPass: errors.length === 0 && required.checks.every((check) => check.ok),
   notes: [
     "This audit is static evidence only; it does not prove provider, deployment, database, device, or production runtime behavior.",
@@ -274,6 +317,7 @@ if (jsonOnly) {
   console.log(`Commit: ${commit}`);
   console.log(`Working tree: ${snapshot.git.clean ? "clean" : status}`);
   console.log(`Source/config files scanned: ${allFiles.length}`);
+  console.log(`First-level applications: ${structure.appDirs.join(", ") || "none"}`);
   console.log(`Packages: ${packages.length}`);
   console.log(`Routes/pages/layouts: ${routes.length}`);
   console.log(`Test files: ${tests.length}`);
@@ -281,6 +325,10 @@ if (jsonOnly) {
   console.log(`CI workflows: ${workflows.length}`);
   console.log(`Environment variables referenced: ${envNames.length}`);
   console.log("");
+  console.log("Repository structure");
+  console.log(`[OK] Allowed first-level applications: apps/mobile, apps/web`);
+  if (structureErrors.length) for (const error of structureErrors) console.log(`[BLOCK] ${error}`);
+  else console.log("[OK] No duplicate/legacy application trees or tracked generated artifacts.");
   console.log("Governance");
   for (const check of required.checks) console.log(`${check.ok ? "[OK]" : "[FAIL]"} ${check.name}`);
   if (required.missing.length) console.log(`Missing: ${required.missing.join(", ")}`);

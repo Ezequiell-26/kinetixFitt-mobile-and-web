@@ -1,40 +1,48 @@
 "use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function ExportActions(){
-  function exportCSV(){
-    const csv = "Fecha,Peso,Adherencia,Volumen\n2026-04-01,88.0,78%,12t\n2026-04-08,87.5,82%,14t\n2026-04-15,86.8,92%,18t";
-    const blob = new Blob([csv], {type:"text/csv"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "progreso-kinetixfitt.csv"; a.click();
+export function ExportActions() {
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function exportData() {
+    setStatus("Exportando…");
+    try {
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ type: "all", format: "csv" }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error || "No se pudieron exportar tus datos.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `kinetixfitt-progreso-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setStatus("Exportación lista.");
+    } catch (cause) {
+      setStatus(cause instanceof Error ? cause.message : "No se pudo exportar.");
+    }
   }
-  function printPDF(){ window.print(); }
+
   return (
     <Card className="border-dashed">
-      <CardContent className="pt-4 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" onClick={exportCSV}>Descargar CSV</Button>
-        <Button variant="outline" size="sm" className="flex-1" onClick={printPDF}>Imprimir PDF</Button>
-        <Button
-          variant="accent"
-          size="sm"
-          className="flex-1 min-h-[44px]"
-          onClick={async ()=>{
-            const data = {title:"Mi progreso", text:"Mira mi progreso en KINETIXFITT"};
-            try{
-              if(navigator.share){
-                await navigator.share(data);
-              }else{
-                exportCSV();
-              }
-            }catch(e){
-              // Cancelar no descarga nada; otro error sí cae al CSV.
-              if((e as Error)?.name !== "AbortError") exportCSV();
-            }
-          }}
-        >
-          Compartir
+      <CardContent className="flex gap-2 pt-4">
+        <Button variant="outline" size="sm" className="flex-1" onClick={exportData}>
+          {status || "Descargar datos"}
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1" onClick={() => window.print()}>
+          Imprimir PDF
         </Button>
       </CardContent>
     </Card>

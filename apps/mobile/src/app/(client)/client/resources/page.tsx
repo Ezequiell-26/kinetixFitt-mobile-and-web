@@ -40,7 +40,7 @@ const resources: Resource[] = [
     type: "Guía",
     duration: "6 min",
     premium: true,
-    thumb: "/exercises/free/Ab_Roller.webp",
+    thumb: "/exercises/free/Ab_Roller.jpg",
     summary: "Principios generales para organizar comidas alrededor de un objetivo de ganancia muscular.",
     body: [
       "Usá el objetivo calórico calculado por KinetixFitt como referencia, no como indicación médica.",
@@ -54,7 +54,7 @@ const resources: Resource[] = [
     type: "Checklist",
     duration: "4 min",
     premium: false,
-    thumb: "/exercises/free/Air_Bike.webp",
+    thumb: "/exercises/free/Air_Bike.jpg",
     summary: "Pasos rápidos para dejar comida lista y reducir decisiones durante la semana.",
     body: [
       "Elegí 2 o 3 fuentes de proteína, 2 acompañamientos y vegetales que puedas rotar.",
@@ -68,7 +68,7 @@ const resources: Resource[] = [
     type: "Audio",
     duration: "1 min",
     premium: true,
-    thumb: "/exercises/free/Alternate_Hammer_Curl.webp",
+    thumb: "/exercises/free/Alternate_Hammer_Curl.jpg",
     summary: "Una pausa breve para bajar distracciones y entrar enfocado a la sesión.",
     body: [
       "Este recurso funciona como preparación mental; no reemplaza el calentamiento físico.",

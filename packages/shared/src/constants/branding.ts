@@ -48,12 +48,12 @@ export const BRAND = {
     darkRGB: "9, 9, 11",
   },
 
-  // Social proof
+  // Public metrics are intentionally omitted until backed by verified production data.
   stats: {
-    trainers: "1,000+",
-    clients: "10,000+",
-    workouts: "100,000+",
-    countries: "15+",
+    trainers: "—",
+    clients: "—",
+    workouts: "—",
+    countries: "—",
   },
 
   // Features

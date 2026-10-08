@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'KinetixFitt — 4.9★ 12k+ atletas';
+export const alt = 'KinetixFitt — entrenamiento, progreso y coaching';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,7 +32,7 @@ export default async function Image() {
             letterSpacing: '0.14em',
           }}
         >
-          KINETIXFITT · 4.9★ · 12k+ ATLETAS
+          KINETIXFITT · TRAINING · PROGRESS · COACHING
         </div>
         <div style={{ marginTop: 16, fontSize: 54, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
           Transforma tu Cuerpo

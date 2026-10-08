@@ -8,8 +8,12 @@ const prisma = new PrismaClient();
  * Por seguridad, un proceso configurado como producción nunca puede ejecutar
  * el borrado destructivo accidentalmente.
  */
-if (process.env.NODE_ENV === "production") {
-  console.error("Refusing to run destructive Prisma seed with NODE_ENV=production.");
+const isCi = process.env.GITHUB_ACTIONS === "true";
+const isTest = process.env.NODE_ENV === "test";
+const isExplicitlyAllowed = process.env.ALLOW_DEMO_SEED === "true";
+
+if (!isCi && !isTest && !isExplicitlyAllowed) {
+  console.error("Refusing to run destructive demo seed. Use NODE_ENV=test or set ALLOW_DEMO_SEED=true explicitly.");
   process.exit(1);
 }
 

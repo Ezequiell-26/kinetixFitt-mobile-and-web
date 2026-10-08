@@ -1,6 +1,0 @@
-# Rust/Tauri build output
-target/
-
-# Local environment
-.env
-.env.*

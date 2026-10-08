@@ -12,8 +12,7 @@ out/
 # Generated native platform projects
 apps/mobile/android/
 apps/mobile/ios/
-apps/desktop/src-tauri/target/
-apps/desktop/src-tauri/gen/
+packages/core/rust/target/
 
 # Environment variables
 .env

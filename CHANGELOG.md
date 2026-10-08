@@ -1,3 +1,24 @@
+## [2026-10-09] — Runtime / build hardening
+
+- Separado /reset-password en una página servidor y formulario cliente dentro de Suspense para cumplir el prerender de Next.js 15.
+- Eliminado el boundary global loading.tsx que dejaba la navegación inicial atrapada bajo la política CSP actual.
+- Ajustada la CSP para mantener nonces en scripts inline sin depender de strict-dynamic mientras Next 15.5 emite ciertos boundary chunks sin nonce.
+- El build standalone ahora empaqueta automáticamente .next/static y public junto al servidor runnable; el artefacto deja de depender de copiar assets manualmente durante el deploy.
+
+## [2026-10-08] — Repository structure consolidation
+
+### Arquitectura
+- Consolidado el monorepo en dos aplicaciones de primer nivel: apps/mobile y apps/web.
+- Eliminados apps/desktop (Tauri), el Electron legado de raíz, artefactos Rust rastreados y archivos temporales.
+- El shell Electron queda únicamente dentro de apps/mobile/electron.
+
+### Calidad / duplicación
+- Eliminadas implementaciones UI duplicadas de Input, EmptyState y Skeleton; Skeleton queda centralizado en @kinetix/shared.
+- Añadido guard estructural al audit de IA para evitar nuevas apps duplicadas, artefactos generados y lockfiles inesperados.
+- Eliminados assets sociales/PWA duplicados no utilizados; el manifest conserva los iconos canónicos 192/512.
+- Eliminadas afirmaciones sociales no verificadas de la imagen de Twitter.
+- Corregido el locator del E2E de Studio para respetar el rol accesible tab.
+
 ## [2026-10-05] — Settings / notifications hardening
 
 - Corregido el botón de cierre de sesión del cliente para ejecutar realmente la acción.
