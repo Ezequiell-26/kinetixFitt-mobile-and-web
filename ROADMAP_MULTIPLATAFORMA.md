@@ -322,7 +322,7 @@ Para mayoría de usuarios SÍ. Apps nativas solo si:
 - Necesitas mejor rendimiento (raro)
 
 ### ¿Electron es pesado?
-Sí (~150MB). Alternativa: Tauri (Rust, ~10MB) pero requiere reconfiguración.
+El shell desktop actual es Electron dentro de `apps/mobile`; Tauri no forma parte de la arquitectura activa.
 
 ### ¿Cuánto cuesta publicar en stores?
 - Apple: $99/año
