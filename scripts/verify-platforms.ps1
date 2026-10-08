@@ -1,10 +1,9 @@
-﻿# KinetixFitt multiplatform verification
+﻿# KinetixFitt native/platform verification
 # Run from repository root: npm -w apps/mobile run verify
 param([ValidateSet("all","android","ios")][string]$Platform = "all")
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $mobile = Join-Path $root "apps/mobile"
-$desktop = Join-Path $root "apps/desktop"
 $script:errors = @()
 $script:warnings = @()
 $script:success = @()
@@ -14,7 +13,7 @@ function Warn($m) { $script:warnings += $m; Write-Host "[WARN] $m" -ForegroundCo
 function Fail($m) { $script:errors += $m; Write-Host "[FAIL] $m" -ForegroundColor Red }
 function Exists($p,$label) { if (Test-Path $p) { Ok $label; return } Fail "$label - missing $p" }
 
-Write-Host "`n=== KINETIXFITT MULTIPLATFORM ===`nPlatform: $Platform`n" -ForegroundColor Cyan
+Write-Host "`n=== KINETIXFITT NATIVE ===`nPlatform: $Platform`n" -ForegroundColor Cyan
 
 # Shared application/native configuration
 Exists (Join-Path $mobile "capacitor.config.ts") "Capacitor config"
@@ -42,7 +41,7 @@ if (Test-Path $manifestPath) {
   $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
   foreach ($icon in @($manifest.icons)) {
     if ($icon.src -and $icon.src.StartsWith("/")) {
-      $asset = Join-Path $mobile ("public" + $icon.src.Replace("/", ""))
+      $asset = Join-Path $mobile ("public" + $icon.src.Replace("/", "\"))
       Exists $asset ("Manifest asset " + $icon.src)
     }
   }
@@ -50,7 +49,6 @@ if (Test-Path $manifestPath) {
 
 # Local runtime prerequisites only; CI performs actual platform builds.
 if (Get-Command node -ErrorAction SilentlyContinue) { Ok "Node.js available" } else { Fail "Node.js unavailable" }
-if (Get-Command rustc -ErrorAction SilentlyContinue) { Ok "Rust compiler available" } else { Warn "Rust compiler unavailable - required for Tauri desktop builds" }
 if (Test-Path (Join-Path $root "node_modules")) { Ok "Root node_modules present" } else { Warn "Root node_modules missing - run npm ci" }
 
 Write-Host "`n--- SUMMARY ---" -ForegroundColor Cyan
