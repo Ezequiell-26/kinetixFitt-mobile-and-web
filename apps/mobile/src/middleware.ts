@@ -24,8 +24,8 @@ function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === "development";
   const scriptSrc = [
     // Next 15.5.x has a framework bug where some App Router boundary chunks
-    // (loading/template/error) are emitted without the request nonce. Keeping
-    // strict-dynamic here blocks those parser-inserted same-origin chunks.
+    // (loading/template/error) are emitted without the request nonce.
+    // Enabling strict-dynamic here would block those parser-inserted same-origin chunks.
     // Nonces still protect inline scripts; self allows only same-origin files.
     "'self'",
     `'nonce-${nonce}'`,
