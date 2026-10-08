@@ -33,8 +33,8 @@ if ($pkg.scripts.'native:add:ios') { Ok "iOS native generation script" } else { 
 if ($pkg.scripts.'desktop:dev') { Ok "Desktop shell remains app-owned" } else { Warn "Desktop Electron shell is not exposed through a mobile package script" }
 
 $configText = Get-Content (Join-Path $mobile "capacitor.config.ts") -Raw
-if ($configText -match 'webDir:s*"native-shell"') { Ok "Capacitor webDir is the lightweight native shell" } else { Fail "Capacitor webDir does not use native-shell" }
-if ($configText -notmatch 'cleartext:s*true') { Ok "Native transport does not allow cleartext" } else { Fail "Native transport allows cleartext" }
+if ($configText.Contains('webDir: "native-shell"')) { Ok "Capacitor uses lightweight native shell" } else { Fail "Capacitor does not use native-shell" }
+if ($configText -notmatch 'cleartext: true') { Ok "Native cleartext disabled" } else { Fail "Native cleartext enabled" }
 
 $manifestPath = Join-Path $mobile "public/manifest.json"
 if (Test-Path $manifestPath) {
