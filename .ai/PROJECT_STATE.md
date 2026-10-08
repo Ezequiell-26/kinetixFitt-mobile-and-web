@@ -1,7 +1,7 @@
 # KinetixFitt — Project State
 
 **Status:** Living document / evidence-based  
-**Last verified:** 2026-09-24  
+**Last verified:** 2026-10-08  
 **Repository:** `Ezequiell-26/kinetixFitt-mobile-and-web`
 
 ## 1. Evidence rule
@@ -14,7 +14,7 @@ The repository contains durable AI governance under `.ai/` plus `.github/agents`
 
 ## 3. Architecture state
 
-The repository contains `apps/mobile` and `apps/web` with explicit roles. Current production/deployment topology still needs verification so the deployed surface matches the intended architecture.
+The repository contains exactly two first-level applications: `apps/mobile` (app + API/backend + PWA + native shells) and `apps/web` (public web/SEO). The former `apps/desktop` Tauri project and root Electron tree were removed as duplicate application surfaces. Current production/deployment topology still needs verification so the deployed surface matches the intended architecture.
 
 Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Mercado Pago, S3-compatible storage, Capacitor, Electron, Three.js/R3F, Sentry, Zod, Recharts, Framer Motion, Web Push/VAPID and Upstash rate limiting.
 
@@ -29,6 +29,15 @@ Technology includes Next.js, React, TypeScript, Prisma/PostgreSQL, Stripe, Merca
 - The notification list update after a successful mark-all request uses a functional state update, avoiding stale-closure overwrites when polling overlaps with the mutation.
 - Existing polling guards, live-region behavior and notification actions are preserved.
 - These are source-level improvements; browser, assistive-technology and mobile runtime verification remain unverified.
+
+## 4.5. 2026-10-08 repository consolidation
+
+- Removed duplicate `apps/desktop` Tauri application and legacy root `electron/` tree.
+- Removed tracked Rust build artifacts under `packages/core/rust/target/` and temporary root `x*.txt` files.
+- Kept the Electron desktop shell only inside `apps/mobile/electron`; it is packaging infrastructure, not a third application.
+- Removed exact duplicate UI implementations and centralized Skeleton in `@kinetix/shared`.
+- Removed unused duplicate social/PWA image assets and reduced the PWA manifest to canonical 192/512 icons.
+- Added structure checks to `scripts/ai-repo-audit.mjs` for unexpected apps, legacy trees, generated artifacts and extra lockfiles.
 
 ## 5. Existing verified/partial areas
 
