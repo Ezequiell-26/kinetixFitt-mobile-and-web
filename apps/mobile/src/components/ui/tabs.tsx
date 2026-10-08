@@ -34,6 +34,7 @@ export function Tabs({
           return (
             <button
               key={t.id}
+              id={`tab-${t.id}`}
               type="button"
               role="tab"
               aria-selected={isActive}
@@ -62,7 +63,7 @@ export function Tabs({
           );
         })}
       </div>
-      <div id={`tabpanel-${active}`} role="tabpanel" aria-labelledby={active}>{children(active)}</div>
+      <div id={`tabpanel-${active}`} role="tabpanel" aria-labelledby={`tab-${active}`}>{children(active)}</div>
     </div>
   );
 }
