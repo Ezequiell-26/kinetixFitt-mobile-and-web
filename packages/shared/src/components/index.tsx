@@ -5,7 +5,6 @@
 
 export { Button } from './button';
 export { Card } from './card';
-export { Input } from './input';
 export { Badge } from './badge';
 export { Skeleton } from './skeleton';
 export {
@@ -17,4 +16,3 @@ export {
   SkeletonList,
   SkeletonGrid,
 } from './skeleton';
-export { EmptyState } from './empty-state';
