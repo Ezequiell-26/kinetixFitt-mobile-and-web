@@ -82,10 +82,11 @@ test.describe("KinetixFitt E2E — program builder real backend", () => {
       expect(mePayload.body?.user?.role ?? mePayload.body?.role).toBe("TRAINER");
 
       await page.goto("/trainer/studio");
-      await page.getByRole("tab", { name: "Plataformas" }).click();
-
-      await expect(page.getByText("Everfit UX Builder")).toBeVisible();
-      await expect(page.getByText("Biblioteca")).toBeVisible();
+      const platformsTab = page.getByRole("tab", { name: "Plataformas" });
+      await platformsTab.click();
+      await expect(platformsTab).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByRole("heading", { name: /Everfit UX Builder/i })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText("Biblioteca", { exact: true })).toBeVisible({ timeout: 15000 });
       await expect(page.getByPlaceholder("Nombre del programa")).toHaveValue("Programa nuevo");
 
       const clientSelector = page.getByRole("button", { name: /E2E Builder Client/ });
