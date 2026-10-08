@@ -62,7 +62,11 @@ const deleted = new Set(changes.filter(change => change.status === 'D').map(chan
 
 const ignored = changed.filter(file => matches(file, ['.git/**']));
 const effective = changed.filter(file => !ignored.includes(file));
-const outside = effective.filter(file => !matches(file, manifest.allowedPaths));
+const deletionOnlyPaths = manifest.deletionOnlyPaths ?? [];
+const outside = effective.filter(file =>
+  !matches(file, manifest.allowedPaths) &&
+  !(deleted.has(file) && matches(file, deletionOnlyPaths))
+);
 const forbidden = effective.filter(file => !deleted.has(file) && matches(file, manifest.forbiddenPaths ?? []));
 const highRisk = effective.filter(file => matches(file, manifest.highRiskPathsRequireExplicitApproval ?? []));
 const explicitApproval = manifest.approvedHighRisk === true;
